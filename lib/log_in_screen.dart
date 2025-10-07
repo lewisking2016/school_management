@@ -12,20 +12,20 @@ class SchoolManagementApp extends StatelessWidget {
     return MaterialApp(
       title: 'School Management System',
       theme: ThemeData(primarySwatch: Colors.indigo),
-      home: const LoginPage(),
+      home: const LogInScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class LogInScreen extends StatefulWidget {
+  const LogInScreen({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<LogInScreen> createState() => _LogInScreenState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LogInScreenState extends State<LogInScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
