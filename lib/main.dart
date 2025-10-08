@@ -14,16 +14,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'School Management',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 96, 23, 206),
-        ),
-        useMaterial3: true,
-      ),
-      home: const LogInScreen(), //my log in screen
-    );
+return MaterialApp(
+  debugShowCheckedModeBanner: false,
+  title: 'School Management',
+  theme: ThemeData(
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color.fromARGB(255, 96, 23, 206),
+    ),
+    useMaterial3: true,
+  ),
+  home: const LogInScreen(), //my log in screen
+routes: {
+  '/login': (context) => const LogInScreen(),
+  // '/register': (context) => const RegisterScreen(), // Uncomment and import RegisterScreen when available
+},
+);
   }
 }

@@ -39,13 +39,22 @@ class _LogInScreenState extends State<LogInScreen> {
         password: password,
       );
 
-      // ignore: use_build_context_synchronously
+      if (!mounted) return;
       ScaffoldMessenger.of(
-        // ignore: use_build_context_synchronously
         context,
       ).showSnackBar(const SnackBar(content: Text('✅ Login successful!')));
 
-      // todo: Navigate to your home page
+      // NAVIGATE: replace current screen with target screen (fade transition)
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) =>
+              const LogInScreen(), // replace with HomeScreen()
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 700),
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       String message = '';
       if (e.code == 'user-not-found') {
