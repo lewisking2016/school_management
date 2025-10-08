@@ -73,10 +73,10 @@ class _LogInScreenState extends State<LogInScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.school, size: 80, color: Colors.blue),
-              const SizedBox(height: 16),
+              Image.asset('assets/stawi_logo.png', height: 120),
+              const SizedBox(height: 24),
               Text(
-                'Welcome to School Management',
+                'Welcome to School Management App',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 32),
