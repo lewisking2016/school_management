@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'register_screen.dart';
 
 void main() {
   runApp(const SchoolManagementApp());
@@ -29,6 +31,38 @@ class _LogInScreenState extends State<LogInScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+
+  Future<void> _loginUser(String email, String password) async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(const SnackBar(content: Text('✅ Login successful!')));
+
+      // todo: Navigate to your home page
+    } on FirebaseAuthException catch (e) {
+      String message = '';
+      if (e.code == 'user-not-found') {
+        message = 'No user found for that email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Incorrect password.';
+      } else {
+        message = e.message ?? 'An error occurred.';
+      }
+
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('❌ $message')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,8 +112,47 @@ class _LogInScreenState extends State<LogInScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Login'),
+                  onPressed: () {
+                    final email = _usernameController.text.trim();
+                    final password = _passwordController.text.trim();
+
+                    if (email.isEmpty || password.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Please enter both email and password.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    _loginUser(email, password);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 32,
+                    ),
+                  ),
+                  child: const Text(
+                    'Login',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  "Don't have an account? Register here",
+                  style: TextStyle(fontSize: 16),
                 ),
               ),
             ],
