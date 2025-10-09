@@ -18,8 +18,9 @@ class _SuccessDialog extends StatefulWidget {
 
 class _SuccessDialogState extends State<_SuccessDialog>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _fadeAnimation;
 
   @override
   void initState() {
@@ -27,7 +28,7 @@ class _SuccessDialogState extends State<_SuccessDialog>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 800),
     );
 
     _scaleAnimation = CurvedAnimation(
@@ -35,13 +36,16 @@ class _SuccessDialogState extends State<_SuccessDialog>
       curve: Curves.elasticOut,
     );
 
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
+    );
+
     _controller.forward();
 
-    // Wait 1 second, then navigate to login screen
-    Future.delayed(const Duration(seconds: 1), () {
+    Future.delayed(const Duration(milliseconds: 900), () {
       if (!mounted) return;
       Navigator.of(context).pop(); // close dialog
-      // navigate to login route
       Navigator.of(context).pushReplacementNamed('/login');
     });
   }
@@ -54,40 +58,57 @@ class _SuccessDialogState extends State<_SuccessDialog>
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: Container(
-          height: 180,
-          width: 180,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                // ignore: deprecated_member_use
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 15,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.check_circle, color: Colors.blueAccent, size: 60),
-              SizedBox(height: 10),
-              Text(
-                "Registered Successfully!",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'DmSans',
-                  color: Colors.black,
+    // Transparent background is handled where dialog is shown.
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Center(
+          child: Container(
+            width: 240,
+            padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  // ignore: deprecated_member_use
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xff1e9b59), // professional green
+                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 56),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Registered Successfully',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Welcome! Redirecting to sign in…',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -115,7 +136,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    // Basic validation before attempting Firebase call
     if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('⚠️ Please fill all fields — try again')),
@@ -123,8 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // simple email format check
-    late final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('⚠️ Enter a valid email — try again')),
@@ -150,24 +169,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Attempt registration
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Show success animation dialog which will navigate to login after animation
       if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
-        barrierColor: Colors.black54, // dim background
-        builder: (context) => Dialog(
-          backgroundColor:
-              Colors.transparent, // remove default dialog color (yellow)
+        barrierColor: Colors.black54,
+        builder: (context) => const Dialog(
+          backgroundColor: Colors.transparent,
           elevation: 0,
-          child: const _SuccessDialog(),
+          child: _SuccessDialog(),
         ),
       );
     } on FirebaseAuthException catch (e) {
