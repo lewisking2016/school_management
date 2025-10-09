@@ -82,7 +82,7 @@ class _LogInScreenState extends State<LogInScreen>
         ),
       );
 
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacementNamed('/dashboard');
     } on FirebaseAuthException catch (e) {
       final message = (e.code == 'user-not-found')
           ? 'No user found for that email.'
@@ -266,7 +266,7 @@ class _LogInScreenState extends State<LogInScreen>
                             elevation: 4,
                             shadowColor: Theme.of(
                               context,
-                            // ignore: deprecated_member_use
+                              // ignore: deprecated_member_use
                             ).colorScheme.primary.withOpacity(0.3),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
