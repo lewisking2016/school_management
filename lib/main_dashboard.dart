@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class MainDashboardScreen extends StatefulWidget {
   const MainDashboardScreen({super.key});
@@ -10,125 +11,593 @@ class MainDashboardScreen extends StatefulWidget {
 
 class _MainDashboardScreenState extends State<MainDashboardScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
+  int _selectedIndex = 0;
 
   // Logout function
   Future<void> _logout() async {
+    // Capture the navigator before the async gap.
+    final navigator = Navigator.of(context);
     await FirebaseAuth.instance.signOut();
-    if (!mounted) return;
     // Navigate back to login and remove all previous routes
-    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    navigator.pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final List<DashboardItem> dashboardItems = [
-      // Student Information Core
-      DashboardItem(
-        icon: Icons.person_outline,
-        title: 'Student Profile',
-        description: 'Details, classes, and sections.',
-        onTap: () {}, // todo: Navigate to Student Profile
-      ),
-      // Academics & Assignments
-      DashboardItem(
-        icon: Icons.menu_book_outlined,
-        title: 'Academics',
-        description: 'Assignments, syllabus, and results.',
-        onTap: () {}, // todo: Navigate to Academics
-      ),
-      DashboardItem(
-        icon: Icons.schedule_outlined,
-        title: 'Timetable',
-        description: 'View your weekly class schedule.',
-        onTap: () {}, // todo: Navigate to Timetable
-      ),
-      // Financial Status
-      DashboardItem(
-        icon: Icons.account_balance_wallet_outlined,
-        title: 'Financials',
-        description: 'Fee collections and due payments.',
-        onTap: () {}, // todo: Navigate to Financials
-      ),
-      // Attendance & Behavior
-      DashboardItem(
-        icon: Icons.check_circle_outline,
-        title: 'Attendance',
-        description: 'Track attendance records.',
-        onTap: () {}, // todo: Navigate to Attendance
-      ),
-      DashboardItem(
-        icon: Icons.gavel_outlined,
-        title: 'Behavior',
-        description: 'View disciplinary records.',
-        onTap: () {}, // todo: Navigate to Behavior
-      ),
-      // Self-Service Actions
-      DashboardItem(
-        icon: Icons.edit_calendar_outlined,
-        title: 'Apply for Leave',
-        description: 'Submit leave requests.',
-        onTap: () {}, // todo: Navigate to Leave Application
-      ),
-      DashboardItem(
-        icon: Icons.school_outlined,
-        title: 'Admissions',
-        description: 'Manage online admission forms.',
-        onTap: () {}, // todo: Navigate to Admissions
-      ),
+
+    final List<Map<String, dynamic>> destinations = [
+      {'icon': Icons.space_dashboard_outlined, 'label': 'Home'},
+      {'icon': Icons.groups_outlined, 'label': 'Students'},
+      {'icon': Icons.school_outlined, 'label': 'Teachers'},
+      {'icon': Icons.menu_book_outlined, 'label': 'Curriculum'},
+      {'icon': Icons.schedule_outlined, 'label': 'Timetable'},
+      {'icon': Icons.celebration_outlined, 'label': 'Events'},
+      {'icon': Icons.assessment_outlined, 'label': 'Reports'},
+      {'icon': Icons.account_balance_wallet_outlined, 'label': 'Financials'},
     ];
 
+    final drawer = Drawer(
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(color: theme.colorScheme.primary),
+            child: Center(
+              child: Text(
+                'Admin Modules',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: destinations.length,
+              itemBuilder: (context, index) =>
+                  _buildDrawerItem(context, theme, destinations, index),
+            ),
+          ),
+        ],
+      ),
+    );
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface.withAlpha(245),
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('School Dashboard'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
-          // Notifications Hub
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // todo: Navigate to notifications screen
-            },
+            onPressed: () {}, // todo: Navigate to notifications screen
           ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
             onPressed: _logout,
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
+      drawer: drawer,
+      body: _buildMainContent(theme),
+    );
+  }
+
+  Widget _buildDrawerItem(
+    BuildContext context,
+    ThemeData theme,
+    List<Map<String, dynamic>> destinations,
+    int index,
+  ) {
+    final item = destinations[index];
+    final isSelected = _selectedIndex == index;
+
+    return ListTile(
+      leading: Icon(
+        item['icon'],
+        color: isSelected ? theme.colorScheme.primary : null,
+      ),
+      title: Text(
+        item['label'],
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? theme.colorScheme.primary : null,
+        ),
+      ),
+      selected: isSelected,
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+        Navigator.of(context).pop(); // Close the drawer
+      },
+    );
+  }
+
+  Widget _buildMainContent(ThemeData theme) {
+    // Placeholder for other module screens
+    if (_selectedIndex != 0) {
+      final destinations = [
+        'Home',
+        'Student Management',
+        'Teacher Management',
+        'Curriculum',
+        'Timetable',
+        'Events & Activities',
+        'Reports',
+        'Financials',
+      ];
+      return Center(
+        child: Text(
+          '${destinations[_selectedIndex]} Screen',
+          style: theme.textTheme.headlineMedium,
+        ),
+      );
+    }
+
+    // Main Dashboard UI
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome back,',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: Colors.grey.shade600,
+            ),
+          ),
+          Text(
+            user?.email?.split('@').first ?? 'User',
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 32),
+          _buildShortcuts(theme),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              Icon(Icons.show_chart_rounded, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Weekly Attendance Summary',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Split attendance charts
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildAttendanceCard(
+                  theme,
+                  title: 'Student Attendance',
+                  data: const [245, 248, 235, 240, 250],
+                  total: 250,
+                  cardAccentColor: Colors.blue.shade700, // Student card accent
+                  chartBarColor: Colors.orange.shade400, // Student bar color
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: _buildAttendanceCard(
+                  theme,
+                  title: 'Teacher Attendance',
+                  data: const [28, 30, 30, 29, 27],
+                  total: 30,
+                  cardAccentColor:
+                      Colors.orange.shade700, // Teacher card accent
+                  chartBarColor: Colors.blue.shade400, // Teacher bar color
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          // New section for Recent and Upcoming Activities
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildRecentActivities(theme)),
+              const SizedBox(width: 24), // Spacing between the two cards
+              Expanded(child: _buildUpcomingActivities(theme)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShortcuts(ThemeData theme) {
+    final List<DashboardItem> shortcutItems = [
+      DashboardItem(
+        icon: Icons.assignment_ind_outlined,
+        title: 'Manage Admissions',
+        description: 'Review new applicants',
+        onTap: () {},
+        color: Colors.teal,
+      ),
+      DashboardItem(
+        icon: Icons.campaign_outlined,
+        title: 'Send Notification',
+        description: 'Broadcast to users',
+        onTap: () {},
+      ),
+      DashboardItem(
+        icon: Icons.edit_calendar_outlined,
+        title: 'Manage Leave',
+        description: 'Approve or deny requests',
+        onTap: () {},
+        color: Colors.orange,
+      ),
+    ];
+
+    return SizedBox(
+      height: 130,
+      child: PageView.builder(
+        controller: PageController(viewportFraction: 0.85),
+        padEnds: false,
+        itemCount: shortcutItems.length,
+        itemBuilder: (context, index) {
+          final item = shortcutItems[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: DashboardCard(item: item),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAttendanceCard(
+    ThemeData theme, {
+    required String title,
+    required List<int> data,
+    required int total,
+    Color? cardAccentColor,
+    Color? chartBarColor,
+  }) {
+    return SizedBox(
+      height: 400,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: Colors.white, // Ensure card background is white
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  // Title uses cardAccentColor
+                  fontWeight: FontWeight.bold,
+                  color: cardAccentColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Daily attendance out of $total',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: _AttendanceChart(
+                  data: data,
+                  total: total,
+                  barColor: chartBarColor ?? theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttendanceChart extends StatelessWidget {
+  final List<int> data;
+  final int total;
+  final Color barColor;
+
+  const _AttendanceChart({
+    // ignore: unused_element_parameter
+    super.key, // The key is now used.
+    required this.data,
+    required this.total,
+    required this.barColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: total.toDouble(),
+        barTouchData: BarTouchData(
+          enabled: false,
+        ), // Disabled for persistent labels
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (double value, TitleMeta meta) {
+                final dayStyle = TextStyle(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                );
+                final valueStyle = TextStyle(
+                  color: Colors.black.withOpacity(0.7),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, // Increased font size for better visibility
+                );
+
+                final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                final index = value.toInt();
+                if (index < 0 || index >= days.length) return const SizedBox();
+
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  space: 8,
+                  child: Column(
+                    children: [
+                      Text(days[index], style: dayStyle),
+                      const SizedBox(height: 4),
+                      Text(data[index].toString(), style: valueStyle),
+                    ],
+                  ),
+                );
+              },
+              reservedSize: 65, // Further increased space to prevent overflow
+            ),
+          ),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        barGroups: List.generate(data.length, (index) {
+          return _makeBar(index, data[index].toDouble(), barColor);
+        }),
+        gridData: const FlGridData(show: false),
+      ),
+      swapAnimationDuration: const Duration(milliseconds: 450),
+      swapAnimationCurve: Curves.easeOut,
+    );
+  }
+
+  BarChartGroupData _makeBar(int x, double y, Color color) {
+    final barGradient = LinearGradient(
+      colors: [color.withOpacity(0.8), color],
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+    );
+    return BarChartGroupData(
+      x: x,
+      barRods: [
+        BarChartRodData(
+          toY: y,
+          gradient: barGradient,
+          width: 18,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(6),
+            topRight: Radius.circular(6),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// New data models for activities
+class RecentActivity {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String time; // e.g., "2 hours ago", "Yesterday"
+
+  RecentActivity({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.time,
+  });
+}
+
+class UpcomingActivity {
+  final IconData icon;
+  final String title;
+  final String date; // e.g., "Oct 28", "Tomorrow"
+  final String time; // e.g., "10:00 AM"
+
+  UpcomingActivity({
+    required this.icon,
+    required this.title,
+    required this.date,
+    required this.time,
+  });
+}
+
+// Extension to organize new activity-related methods within the state class
+extension _MainDashboardScreenStateActivities on _MainDashboardScreenState {
+  Widget _buildRecentActivities(ThemeData theme) {
+    final List<RecentActivity> activities = [
+      RecentActivity(
+        icon: Icons.person_add_alt_1_outlined,
+        title: 'New Student Enrolled',
+        description: 'John Doe joined Grade 5A.',
+        time: '2 hours ago',
+      ),
+      RecentActivity(
+        icon: Icons.assignment_turned_in_outlined,
+        title: 'Assignment Graded',
+        description: 'Math assignment for Grade 7 completed.',
+        time: 'Yesterday',
+      ),
+      RecentActivity(
+        icon: Icons.group_add_outlined,
+        title: 'New Teacher Hired',
+        description: 'Ms. Emily White for English Dept.',
+        time: '3 days ago',
+      ),
+    ];
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome,',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.grey.shade600,
-              ),
-            ),
-            Text(
-              user?.email ?? 'User',
-              style: theme.textTheme.headlineSmall?.copyWith(
+              'Recent Activities',
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 24),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // 2 cards per row
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.1,
+            const SizedBox(height: 16),
+            ...activities.map(
+              (activity) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      activity.icon,
+                      color:
+                          Colors.blue.shade700, // Consistent with student theme
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activity.title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            activity.description,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      activity.time,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              itemCount: dashboardItems.length,
-              itemBuilder: (context, index) {
-                final item = dashboardItems[index];
-                return DashboardCard(item: item);
-              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpcomingActivities(ThemeData theme) {
+    final List<UpcomingActivity> activities = [
+      UpcomingActivity(
+        icon: Icons.event_note_outlined,
+        title: 'Parent-Teacher Meeting',
+        date: 'Oct 28',
+        time: '09:00 AM',
+      ),
+      UpcomingActivity(
+        icon: Icons.school_outlined,
+        title: 'Annual Sports Day',
+        date: 'Nov 05',
+        time: 'All Day',
+      ),
+      UpcomingActivity(
+        icon: Icons.menu_book_outlined,
+        title: 'Curriculum Review',
+        date: 'Nov 10',
+        time: '02:00 PM',
+      ),
+    ];
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Upcoming Activities',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...activities.map(
+              (activity) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      activity.icon,
+                      color: Colors
+                          .orange
+                          .shade700, // Consistent with teacher theme
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activity.title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${activity.date}, ${activity.time}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -142,12 +611,14 @@ class DashboardItem {
   final String title;
   final String description;
   final VoidCallback onTap;
+  final Color? color;
 
   DashboardItem({
     required this.icon,
     required this.title,
     required this.description,
     required this.onTap,
+    this.color,
   });
 }
 
@@ -159,34 +630,49 @@ class DashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cardColor = item.color ?? theme.colorScheme.primary;
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(
+          color: cardColor.withOpacity(0.5),
+          width: 1,
+        ), // Use cardColor for border
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: item.onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
             children: [
-              Icon(item.icon, size: 32, color: theme.colorScheme.primary),
-              const SizedBox(height: 12),
-              Text(
-                item.title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Icon(item.icon, size: 40, color: cardColor),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      item.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                item.description,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
