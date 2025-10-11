@@ -12,7 +12,20 @@
           "package_name": "com.example.school_management"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "657011371867-6133fi8cn1me63ga6ndoo49v4307nfvd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.school_management",
+            "certificate_hash": "47f68784914888e062513e8c16ea83ed2d0ab7bc"
+          }
+        },
+        {
+          "client_id": "657011371867-eq0u90690r0vuna34lvqkd39i4netflc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAmiB3t5h4PCOpiooI4pweqMM2rYtULKEk"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "657011371867-eq0u90690r0vuna34lvqkd39i4netflc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "657011371867-upd04ej4j2qlfui64g9a0o8ec6vr0q8r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.schoolManagement"
+              }
+            }
+          ]
         }
       }
     }

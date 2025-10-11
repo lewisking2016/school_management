@@ -91,21 +91,9 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                           flex: 3,
                           child: Padding(
                             padding: const EdgeInsets.all(32.0),
-                            child: Image.network(
+                            child: Image.asset(
                               item.imageUrl,
                               fit: BoxFit.contain,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: progress.expectedTotalBytes != null
-                                        ? progress.cumulativeBytesLoaded /
-                                              (progress.expectedTotalBytes ?? 1)
-                                        : null,
-                                    color: Colors.white,
-                                  ),
-                                );
-                              },
                               errorBuilder: (_, __, ___) => const Icon(
                                 Icons.image_not_supported,
                                 size: 120,

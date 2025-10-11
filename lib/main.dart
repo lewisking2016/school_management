@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; 
-import 'log_in_screen.dart'; 
+import 'firebase_options.dart';
+import 'log_in_screen.dart';
 import 'main_dashboard.dart';
 import 'onboarding.dart';
+import 'register_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
         '/onboarding': (context) => const OnboardingPage1(),
         '/login': (context) => const LogInScreen(),
         '/dashboard': (context) => const MainDashboardScreen(),
-        // '/register': (context) => const RegisterScreen(),
+        '/register': (context) => const RegisterScreen(),
       },
     );
   }
