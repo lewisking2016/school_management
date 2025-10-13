@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'log_in_screen.dart';
-import 'main_dashboard.dart';
+import 'package:flutter/material.dart';
+import 'package:school_management/firebase_options.dart';
+import 'package:school_management/log_in_screen.dart';
+import 'package:school_management/main_dashboard.dart';
+import 'package:school_management/register_screen.dart';
+import 'package:school_management/splash_screen.dart';
+
 import 'onboarding.dart';
-import 'register_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,19 +21,33 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'School Management',
+      title: 'Stawi School Management',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 96, 23, 206),
+          seedColor: const Color(0xFF005A9C), // A professional blue
+          primary: const Color(0xFF005A9C),
+          secondary: const Color(0xFFE37222), // A warm accent orange
         ),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF5F7FA),
+          elevation: 0,
+          iconTheme: IconThemeData(color: Colors.black87),
+          titleTextStyle: TextStyle(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
-      home: const OnboardingPage1(), // start with onboarding
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/onboarding': (context) => const OnboardingPage1(),
         '/login': (context) => const LogInScreen(),
-        '/dashboard': (context) => const MainDashboardScreen(),
         '/register': (context) => const RegisterScreen(),
+        '/dashboard': (context) => const MainDashboardScreen(),
       },
     );
   }
