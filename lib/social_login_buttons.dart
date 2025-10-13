@@ -24,7 +24,6 @@ class SocialLoginButtons extends StatelessWidget {
 
       // 3. Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth =
-          // ignore: await_only_futures
           await googleUser.authentication;
 
       // 4. Create a new credential for Firebase
@@ -34,7 +33,17 @@ class SocialLoginButtons extends StatelessWidget {
       );
 
       // 5. Sign in to Firebase with the Google credentials
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
+
+      // 6. Manually update the user's profile information in Firebase
+      // This ensures the display name and photo are always up-to-date.
+      final User? user = userCredential.user;
+      if (user != null) {
+        await user.updateDisplayName(googleUser.displayName);
+        // Reload the user to get the updated profile information.
+        await user.reload();
+      }
 
       if (context.mounted) {
         Navigator.of(context).pushReplacementNamed('/dashboard');

@@ -10,8 +10,25 @@ class MainDashboardScreen extends StatefulWidget {
 }
 
 class _MainDashboardScreenState extends State<MainDashboardScreen> {
-  final User? user = FirebaseAuth.instance.currentUser;
+  User? user = FirebaseAuth.instance.currentUser;
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshUserData();
+  }
+
+  // Fetches the latest user data from Firebase.
+  Future<void> _refreshUserData() async {
+    await user?.reload();
+    final refreshedUser = FirebaseAuth.instance.currentUser;
+    if (mounted) {
+      setState(() {
+        user = refreshedUser;
+      });
+    }
+  }
 
   // Logout function
   Future<void> _logout() async {
@@ -20,6 +37,14 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     await FirebaseAuth.instance.signOut();
     // Navigate back to login and remove all previous routes
     navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
+  // Placeholder for profile picture upload logic
+  Future<void> _uploadProfilePicture() async {
+    // todo: Implement image picker and Firebase Storage upload logic.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile picture upload coming soon!')),
+    );
   }
 
   @override
@@ -59,10 +84,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             currentAccountPicture: CircleAvatar(
               backgroundColor: theme.colorScheme.onPrimary,
               backgroundImage: user?.photoURL != null
-                  ? NetworkImage(user!.photoURL!)
+                  ? NetworkImage(user!.photoURL!) as ImageProvider
                   : null,
               child: user?.photoURL == null
-                  ? Text(user?.displayName?.substring(0, 1) ?? 'A')
+                  ? Text(
+                      user?.displayName?.substring(0, 1).toUpperCase() ?? 'A',
+                    )
                   : null,
             ),
           ),
@@ -103,7 +130,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               child: CircleAvatar(
                 radius: 18,
                 backgroundImage: user?.photoURL != null
-                    ? NetworkImage(user!.photoURL!)
+                    ? NetworkImage(user!.photoURL!) as ImageProvider
                     : null,
                 child: user?.photoURL == null
                     ? const Icon(Icons.person_outline, size: 20)
@@ -271,21 +298,49 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundImage: user?.photoURL != null
-                      ? NetworkImage(user!.photoURL!)
-                      : null,
-                  // ignore: sort_child_properties_last
-                  child: user?.photoURL == null
-                      ? Text(
-                          user?.displayName?.substring(0, 1) ?? 'A',
-                          style: theme.textTheme.displayMedium?.copyWith(
-                            color: theme.colorScheme.onPrimary,
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundImage: user?.photoURL != null
+                          ? NetworkImage(user!.photoURL!) as ImageProvider
+                          : null,
+                      backgroundColor: theme.colorScheme.primary,
+                      child: user?.photoURL == null
+                          ? Text(
+                              user?.displayName
+                                      ?.substring(0, 1)
+                                      .toUpperCase() ??
+                                  'A',
+                              style: theme.textTheme.displayMedium?.copyWith(
+                                color: theme.colorScheme.onPrimary,
+                              ),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Material(
+                        color: theme.colorScheme.secondary,
+                        shape: const CircleBorder(),
+                        elevation: 2,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
                           ),
-                        )
-                      : null,
-                  backgroundColor: theme.colorScheme.primary,
+                          onPressed: _uploadProfilePicture,
+                          tooltip: 'Change Profile Picture',
+                          constraints: const BoxConstraints(
+                            minHeight: 44,
+                            minWidth: 44,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Text(
