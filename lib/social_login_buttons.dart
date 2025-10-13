@@ -8,7 +8,11 @@ class SocialLoginButtons extends StatelessWidget {
   Future<void> _signInWithGoogle(BuildContext context) async {
     try {
       // 1. Create GoogleSignIn instance
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId:
+            '657011371867-eq0u90690r0vuna34lvqkd39i4netflc.apps.googleusercontent.com',
+        scopes: ['email'],
+      );
 
       // 2. Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
@@ -39,7 +43,7 @@ class SocialLoginButtons extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Google Sign-in failed. Please try again.'),
+            content: Text('Google Sign-in failed. Please try again.: $e'),
             backgroundColor: Colors.red.shade600,
           ),
         );
@@ -58,9 +62,8 @@ class SocialLoginButtons extends StatelessWidget {
               height: 22, // Slightly smaller icon
               width: 22,
             ),
-            label: const Flexible(
-              child: Text('Google', overflow: TextOverflow.ellipsis),
-            ),
+            label: const Text('Google', overflow: TextOverflow.ellipsis),
+
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               backgroundColor: Colors.white,
@@ -81,9 +84,8 @@ class SocialLoginButtons extends StatelessWidget {
               height: 22,
               width: 22,
             ),
-            label: const Flexible(
-              child: Text('Microsoft', overflow: TextOverflow.ellipsis),
-            ),
+            label: const Text('Microsoft', overflow: TextOverflow.ellipsis),
+
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               backgroundColor: const Color(0xFFF2F2F2),

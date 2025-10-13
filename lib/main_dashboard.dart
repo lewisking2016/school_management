@@ -35,24 +35,40 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       {'icon': Icons.celebration_outlined, 'label': 'Events'},
       {'icon': Icons.assessment_outlined, 'label': 'Reports'},
       {'icon': Icons.account_balance_wallet_outlined, 'label': 'Financials'},
+      {'icon': Icons.person_outline, 'label': 'Profile'},
     ];
 
     final drawer = Drawer(
       child: Column(
         children: [
-          DrawerHeader(
+          UserAccountsDrawerHeader(
             decoration: BoxDecoration(color: theme.colorScheme.primary),
-            child: Center(
-              child: Text(
-                'Admin Modules',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                ),
+            accountName: Text(
+              user?.displayName ?? 'Admin User',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
               ),
+            ),
+            accountEmail: Text(
+              user?.email ?? '',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onPrimary.withOpacity(0.8),
+              ),
+            ),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: theme.colorScheme.onPrimary,
+              backgroundImage: user?.photoURL != null
+                  ? NetworkImage(user!.photoURL!)
+                  : null,
+              child: user?.photoURL == null
+                  ? Text(user?.displayName?.substring(0, 1) ?? 'A')
+                  : null,
             ),
           ),
           Expanded(
             child: ListView.builder(
+              padding: EdgeInsets.zero, // Remove padding from ListView
               itemCount: destinations.length,
               itemBuilder: (context, index) =>
                   _buildDrawerItem(context, theme, destinations, index),
@@ -64,7 +80,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface.withAlpha(245),
       appBar: AppBar(
-        title: const Text('School Dashboard'),
+        title: const Text('Admins Dashboard'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -72,10 +88,28 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {}, // todo: Navigate to notifications screen
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: _logout,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: GestureDetector(
+              onTap: () {
+                // Find the index for the 'Profile' screen and navigate to it.
+                final profileIndex = destinations.indexWhere(
+                  (element) => element['label'] == 'Profile',
+                );
+                if (profileIndex != -1) {
+                  setState(() => _selectedIndex = profileIndex);
+                }
+              },
+              child: CircleAvatar(
+                radius: 18,
+                backgroundImage: user?.photoURL != null
+                    ? NetworkImage(user!.photoURL!)
+                    : null,
+                child: user?.photoURL == null
+                    ? const Icon(Icons.person_outline, size: 20)
+                    : null,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -117,18 +151,25 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   }
 
   Widget _buildMainContent(ThemeData theme) {
-    // Placeholder for other module screens
-    if (_selectedIndex != 0) {
-      final destinations = [
-        'Home',
-        'Student Management',
-        'Teacher Management',
-        'Curriculum',
-        'Timetable',
-        'Events & Activities',
-        'Reports',
-        'Financials',
-      ];
+    final destinations = [
+      'Home',
+      'Student Management',
+      'Teacher Management',
+      'Curriculum',
+      'Timetable',
+      'Events & Activities',
+      'Reports',
+      'Financials',
+      'Profile',
+    ];
+
+    // Main Dashboard UI
+    if (_selectedIndex == 0) {
+      return _buildDashboardHome(theme);
+    } else if (destinations[_selectedIndex] == 'Profile') {
+      return _buildProfileScreen(theme);
+    } else {
+      // Placeholder for other module screens
       return Center(
         child: Text(
           '${destinations[_selectedIndex]} Screen',
@@ -136,8 +177,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         ),
       );
     }
+  }
 
-    // Main Dashboard UI
+  Widget _buildDashboardHome(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -150,7 +192,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             ),
           ),
           Text(
-            user?.email?.split('@').first ?? 'User',
+            user?.displayName ?? 'User',
             style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
@@ -211,6 +253,79 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileScreen(ThemeData theme) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 60,
+                  backgroundImage: user?.photoURL != null
+                      ? NetworkImage(user!.photoURL!)
+                      : null,
+                  // ignore: sort_child_properties_last
+                  child: user?.photoURL == null
+                      ? Text(
+                          user?.displayName?.substring(0, 1) ?? 'A',
+                          style: theme.textTheme.displayMedium?.copyWith(
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        )
+                      : null,
+                  backgroundColor: theme.colorScheme.primary,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  user?.displayName ?? 'Admin User',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  user?.email ?? '',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                    onPressed: _logout,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.red.shade50,
+                      foregroundColor: Colors.red.shade800,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.red.shade200),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
