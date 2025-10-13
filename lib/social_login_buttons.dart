@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'loading_screen.dart';
 
 class SocialLoginButtons extends StatelessWidget {
   const SocialLoginButtons({super.key});
 
   Future<void> _signInWithGoogle(BuildContext context) async {
+    showLoadingOverlay(context, text: 'Connecting to Google...');
     try {
       // 1. Create GoogleSignIn instance
       final GoogleSignIn googleSignIn = GoogleSignIn(
@@ -18,6 +20,7 @@ class SocialLoginButtons extends StatelessWidget {
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
+        if (context.mounted) hideLoadingOverlay(context);
         // User canceled sign-in
         return;
       }
@@ -46,10 +49,12 @@ class SocialLoginButtons extends StatelessWidget {
       }
 
       if (context.mounted) {
+        hideLoadingOverlay(context);
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }
     } catch (e) {
       if (context.mounted) {
+        hideLoadingOverlay(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Google Sign-in failed. Please try again.: $e'),

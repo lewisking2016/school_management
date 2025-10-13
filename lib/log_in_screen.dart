@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'social_login_buttons.dart';
+import 'loading_screen.dart';
 
 class LogInScreen extends StatefulWidget {
   const LogInScreen({super.key});
@@ -15,7 +16,6 @@ class _LogInScreenState extends State<LogInScreen>
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _loading = false;
 
   // Animation controllers
   late AnimationController _animationController;
@@ -70,19 +70,20 @@ class _LogInScreenState extends State<LogInScreen>
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    setState(() => _loading = true);
+    showLoadingOverlay(context, text: 'Signing in...');
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
       if (!mounted) return;
+      hideLoadingOverlay(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('✅ Login successful!'),
+          content: Text(
+            '✅ Welcome back, ${userCredential.user?.displayName ?? 'User'}!',
+          ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: Colors.green.shade600,
         ),
@@ -90,6 +91,7 @@ class _LogInScreenState extends State<LogInScreen>
 
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } on FirebaseAuthException catch (e) {
+      if (mounted) hideLoadingOverlay(context);
       String message;
       switch (e.code) {
         case 'user-not-found':
@@ -112,8 +114,6 @@ class _LogInScreenState extends State<LogInScreen>
           backgroundColor: Colors.red.shade600,
         ),
       );
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -275,12 +275,10 @@ class _LogInScreenState extends State<LogInScreen>
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: _loading
-                                  ? null
-                                  : () {
-                                      _animateButton();
-                                      _loginUser();
-                                    },
+                              onPressed: () {
+                                _animateButton();
+                                _loginUser();
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Theme.of(
                                   context,
@@ -294,36 +292,20 @@ class _LogInScreenState extends State<LogInScreen>
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: _loading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
-                                      ),
-                                    )
-                                  : const Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'Sign In',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Icon(
-                                          Icons.arrow_forward_rounded,
-                                          size: 20,
-                                        ),
-                                      ],
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
                                     ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.arrow_forward_rounded, size: 20),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -346,11 +328,8 @@ class _LogInScreenState extends State<LogInScreen>
                         children: [
                           const Text("Don't have an account?"),
                           TextButton(
-                            onPressed: _loading
-                                ? null
-                                : () {
-                                    Navigator.pushNamed(context, '/register');
-                                  },
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/register'),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'loading_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -121,6 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  // ignore: unused_field, prefer_final_fields
   bool _isLoading = false;
 
   late AnimationController _animationController;
@@ -170,11 +172,12 @@ class _RegisterScreenState extends State<RegisterScreen>
   Future<void> _registerUser() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    showLoadingOverlay(context, text: 'Creating account...');
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      // ignore: unused_local_variable
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -190,9 +193,14 @@ class _RegisterScreenState extends State<RegisterScreen>
           child: _SuccessDialog(),
         ),
       );
+
+      // Update display name if provided (add a name field for this)
+      // await userCredential.user?.updateDisplayName('New User');
+
       // Navigate after the dialog is closed.
       if (mounted) Navigator.of(context).pushReplacementNamed('/login');
     } on FirebaseAuthException catch (e) {
+      if (mounted) hideLoadingOverlay(context);
       String message = '';
       if (e.code == 'email-already-in-use') {
         message = 'This email is already registered.';
@@ -207,12 +215,11 @@ class _RegisterScreenState extends State<RegisterScreen>
         context,
       ).showSnackBar(SnackBar(content: Text('❌ $message — try again')));
     } catch (e) {
-      if (!mounted) return;
+      if (mounted) hideLoadingOverlay(context);
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('❌ Unexpected error — try again')),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -358,12 +365,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                _animateButton();
-                                _registerUser();
-                              },
+                        onPressed: () {
+                          _animateButton();
+                          _registerUser();
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(
                             context,
@@ -373,29 +378,17 @@ class _RegisterScreenState extends State<RegisterScreen>
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Text(
-                                'Create Account',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                        child: const Text(
+                          'Create Account',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
                       ),
                     ),
                   ),
-                ],
-              );
+                  ),
+            ]);
             },
           ),
         ),
