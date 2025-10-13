@@ -271,12 +271,11 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           ),
           const SizedBox(height: 32),
           // New section for Recent and Upcoming Activities
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Column(
             children: [
-              Expanded(child: _buildRecentActivities(theme)),
-              const SizedBox(width: 24), // Spacing between the two cards
-              Expanded(child: _buildUpcomingActivities(theme)),
+              _buildRecentActivities(theme),
+              const SizedBox(height: 24),
+              _buildUpcomingActivities(theme),
             ],
           ),
         ],
@@ -648,44 +647,35 @@ extension _MainDashboardScreenStateActivities on _MainDashboardScreenState {
             ),
             const SizedBox(height: 16),
             ...activities.map(
-              (activity) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      activity.icon,
-                      color:
-                          Colors.blue.shade700, // Consistent with student theme
-                      size: 24,
+              (activity) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                ),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue.shade100,
+                    foregroundColor: Colors.blue.shade800,
+                    child: Icon(activity.icon, size: 22),
+                  ),
+                  title: Text(
+                    activity.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    activity.description,
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  trailing: Text(
+                    activity.time,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade600,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.title,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            activity.description,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      activity.time,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -733,39 +723,29 @@ extension _MainDashboardScreenStateActivities on _MainDashboardScreenState {
             ),
             const SizedBox(height: 16),
             ...activities.map(
-              (activity) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      activity.icon,
-                      color: Colors
-                          .orange
-                          .shade700, // Consistent with teacher theme
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.title,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '${activity.date}, ${activity.time}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              (activity) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withOpacity(0.1)),
+                ),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.orange.shade100,
+                    foregroundColor: Colors.orange.shade800,
+                    child: Icon(activity.icon, size: 22),
+                  ),
+                  title: Text(
+                    activity.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    '${activity.date}, ${activity.time}',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
                 ),
               ),
             ),
