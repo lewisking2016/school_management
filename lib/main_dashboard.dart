@@ -53,13 +53,14 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
     final List<Map<String, dynamic>> destinations = [
       {'icon': Icons.space_dashboard_outlined, 'label': 'Home'},
-      {'icon': Icons.groups_outlined, 'label': 'Students'},
-      {'icon': Icons.school_outlined, 'label': 'Teachers'},
+      {'icon': Icons.checklist_rtl_outlined, 'label': 'Attendance Management'},
       {'icon': Icons.menu_book_outlined, 'label': 'Curriculum'},
+      {'icon': Icons.assignment_outlined, 'label': 'Assignments'},
       {'icon': Icons.schedule_outlined, 'label': 'Timetable'},
       {'icon': Icons.celebration_outlined, 'label': 'Events'},
       {'icon': Icons.assessment_outlined, 'label': 'Reports'},
       {'icon': Icons.account_balance_wallet_outlined, 'label': 'Financials'},
+      {'icon': Icons.chat_bubble_outline, 'label': 'Communication'},
       {'icon': Icons.person_outline, 'label': 'Profile'},
     ];
 
@@ -180,13 +181,14 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   Widget _buildMainContent(ThemeData theme) {
     final destinations = [
       'Home',
-      'Student Management',
-      'Teacher Management',
+      'Attendance Management',
       'Curriculum',
+      'Assignments',
       'Timetable',
       'Events & Activities',
       'Reports',
       'Financials',
+      'Communication',
       'Profile',
     ];
 
@@ -387,11 +389,11 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   Widget _buildShortcuts(ThemeData theme) {
     final List<DashboardItem> shortcutItems = [
       DashboardItem(
-        icon: Icons.assignment_ind_outlined,
-        title: 'Manage Admissions',
-        description: 'Review new applicants',
+        icon: Icons.assessment_outlined,
+        title: 'Manage Reports',
+        description: 'Generate and view reports',
         onTap: () {},
-        color: Colors.teal,
+        color: Colors.blue.shade700,
       ),
       DashboardItem(
         icon: Icons.campaign_outlined,
@@ -716,7 +718,7 @@ extension _MainDashboardScreenStateActivities on _MainDashboardScreenState {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Upcoming Activities',
+              'Upcoming Events',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
