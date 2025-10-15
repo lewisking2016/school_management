@@ -65,6 +65,45 @@ class SocialLoginButtons extends StatelessWidget {
     }
   }
 
+  Future<void> _signInWithMicrosoft(BuildContext context) async {
+    showLoadingOverlay(context, text: 'Connecting to Microsoft...');
+    try {
+      // 1. Create the Microsoft OAuth provider
+      final provider = MicrosoftAuthProvider();
+
+      // 2. Set custom parameters (Tenant ID from Azure)
+      // IMPORTANT: Replace 'YOUR_TENANT_ID' with your actual Azure AD Tenant ID.
+      provider.setCustomParameters({
+        'tenant': 'e4e32b55-027c-4d94-986b-1f2a460f295e',
+      });
+
+      // 3. Sign in asynchronously
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithPopup(provider);
+
+      final User? user = userCredential.user;
+
+      if (context.mounted && user != null) {
+        hideLoadingOverlay(context);
+        Navigator.of(context).pushReplacementNamed('/dashboard');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Welcome, ${user.displayName ?? 'User'}!'),
+            backgroundColor: Colors.green.shade600,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        hideLoadingOverlay(context);
+        _showErrorSnackbar(
+          context,
+          'Microsoft Sign-in failed. Please try again.',
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -93,13 +132,8 @@ class SocialLoginButtons extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton.icon(
-            icon: Image.asset(
-              'assets/micro_icon.webp', // Corrected asset path
-              height: 22,
-              width: 22,
-            ),
+            icon: Image.asset('assets/micro_icon.webp', height: 22, width: 22),
             label: const Text('Microsoft', overflow: TextOverflow.ellipsis),
-
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               backgroundColor: const Color(0xFFF2F2F2),
@@ -109,16 +143,27 @@ class SocialLoginButtons extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Microsoft sign-in coming soon...'),
-                ),
-              );
-            },
+            onPressed: () =>
+                _signInWithMicrosoft(context), // Call Microsoft login
           ),
         ),
       ],
+    );
+  }
+
+  void _showErrorSnackbar(BuildContext context, String message) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('❌ $message'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.red.shade600,
+        action: SnackBarAction(
+          label: 'Dismiss',
+          onPressed: () {},
+          textColor: Colors.white,
+        ),
+      ),
     );
   }
 }
