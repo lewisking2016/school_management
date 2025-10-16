@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:school_management/attendance_management_screen.dart';
 
 class MainDashboardScreen extends StatefulWidget {
   const MainDashboardScreen({super.key});
@@ -195,6 +196,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     // Main Dashboard UI
     if (_selectedIndex == 0) {
       return _buildDashboardHome(theme);
+    } else if (destinations[_selectedIndex] == 'Attendance Management') {
+      return const AttendanceManagementScreen();
     } else if (destinations[_selectedIndex] == 'Profile') {
       return _buildProfileScreen(theme);
     } else {
