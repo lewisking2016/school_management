@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:school_management/attendance_management_screen.dart';
+import 'package:school_management/front_office_screen.dart';
 
 class MainDashboardScreen extends StatefulWidget {
   const MainDashboardScreen({super.key});
@@ -13,6 +13,44 @@ class MainDashboardScreen extends StatefulWidget {
 class _MainDashboardScreenState extends State<MainDashboardScreen> {
   User? user = FirebaseAuth.instance.currentUser;
   int _selectedIndex = 0;
+
+  final List<Map<String, dynamic>> destinations = [
+    {'icon': Icons.space_dashboard_outlined, 'label': 'Home'}, // Dashboard
+    {'icon': Icons.meeting_room_outlined, 'label': 'Front Office'},
+    {'icon': Icons.people_outline, 'label': 'Student Information'},
+    {'icon': Icons.receipt_long_outlined, 'label': 'Fees Collection'},
+    {'icon': Icons.play_circle_outline, 'label': 'E-Learning / Online Course'},
+    {'icon': Icons.school_outlined, 'label': 'Academic'},
+    {'icon': Icons.business_outlined, 'label': 'Multi Branch'},
+    {'icon': Icons.video_call_outlined, 'label': 'G-Meet Live Classes'},
+    {'icon': Icons.duo_outlined, 'label': 'Zoom Live Classes'},
+    {'icon': Icons.gavel_outlined, 'label': 'Disciplinary / Behavior'},
+    {'icon': Icons.arrow_downward_outlined, 'label': 'Income'},
+    {'icon': Icons.arrow_upward_outlined, 'label': 'Expenses'},
+    {'icon': Icons.grade_outlined, 'label': 'CBSE Examination'},
+    {'icon': Icons.quiz_outlined, 'label': 'Examination / Online Examination'},
+    {
+      'icon': Icons.qr_code_scanner_outlined,
+      'label': 'Attendance / QR Code Attendance',
+    },
+    {'icon': Icons.calendar_today_outlined, 'label': 'Annual School Calendar'},
+    {'icon': Icons.rule_folder_outlined, 'label': 'Lesson Plan'},
+    {'icon': Icons.badge_outlined, 'label': 'Human Resource'},
+    {
+      'icon': Icons.supervised_user_circle_outlined,
+      'label': 'Teacher Management',
+    },
+    {'icon': Icons.local_library_outlined, 'label': 'Library'},
+    {'icon': Icons.inventory_2_outlined, 'label': 'Inventory / Procurement'},
+    {'icon': Icons.directions_bus_outlined, 'label': 'Transport / Logistics'},
+    {'icon': Icons.hotel_outlined, 'label': 'Hostel / Room Management'},
+    {'icon': Icons.card_membership_outlined, 'label': 'Certificate'},
+    {'icon': Icons.web_outlined, 'label': 'Front CMS'},
+    {'icon': Icons.groups_outlined, 'label': 'Alumni'},
+    {'icon': Icons.assessment_outlined, 'label': 'Reports'},
+    {'icon': Icons.settings_outlined, 'label': 'System Setting'},
+    {'icon': Icons.person_outline, 'label': 'Profile'},
+  ];
 
   @override
   void initState() {
@@ -51,19 +89,6 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    final List<Map<String, dynamic>> destinations = [
-      {'icon': Icons.space_dashboard_outlined, 'label': 'Home'},
-      {'icon': Icons.checklist_rtl_outlined, 'label': 'Attendance Management'},
-      {'icon': Icons.menu_book_outlined, 'label': 'Curriculum'},
-      {'icon': Icons.assignment_outlined, 'label': 'Assignments'},
-      {'icon': Icons.schedule_outlined, 'label': 'Timetable'},
-      {'icon': Icons.celebration_outlined, 'label': 'Events'},
-      {'icon': Icons.assessment_outlined, 'label': 'Reports'},
-      {'icon': Icons.account_balance_wallet_outlined, 'label': 'Financials'},
-      {'icon': Icons.chat_bubble_outline, 'label': 'Communication'},
-      {'icon': Icons.person_outline, 'label': 'Profile'},
-    ];
 
     final drawer = Drawer(
       child: Column(
@@ -180,34 +205,23 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   }
 
   Widget _buildMainContent(ThemeData theme) {
-    final destinations = [
-      'Home',
-      'Attendance Management',
-      'Curriculum',
-      'Assignments',
-      'Timetable',
-      'Events & Activities',
-      'Reports',
-      'Financials',
-      'Communication',
-      'Profile',
-    ];
-
+    final String currentLabel = destinations[_selectedIndex]['label'];
     // Main Dashboard UI
-    if (_selectedIndex == 0) {
-      return _buildDashboardHome(theme);
-    } else if (destinations[_selectedIndex] == 'Attendance Management') {
-      return const AttendanceManagementScreen();
-    } else if (destinations[_selectedIndex] == 'Profile') {
-      return _buildProfileScreen(theme);
-    } else {
-      // Placeholder for other module screens
-      return Center(
-        child: Text(
-          '${destinations[_selectedIndex]} Screen',
-          style: theme.textTheme.headlineMedium,
-        ),
-      );
+    switch (currentLabel) {
+      case 'Home':
+        return _buildDashboardHome(theme);
+      case 'Profile':
+        return _buildProfileScreen(theme);
+      case 'Front Office':
+        return const FrontOfficeScreen();
+      default:
+        // Placeholder for other module screens
+        return Center(
+          child: Text(
+            '$currentLabel Screen',
+            style: theme.textTheme.headlineMedium,
+          ),
+        );
     }
   }
 
