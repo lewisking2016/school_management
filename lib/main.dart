@@ -1,6 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:school_management/attendance_management_screen.dart';
 import 'package:school_management/firebase_options.dart';
 import 'package:school_management/log_in_screen.dart';
 import 'package:school_management/main_dashboard.dart';
@@ -49,7 +48,6 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LogInScreen(),
         '/register': (context) => const RegisterScreen(),
         '/dashboard': (context) => const MainDashboardScreen(),
-        '/attendance': (context) => const AttendanceManagementScreen(),
       },
     );
   }
