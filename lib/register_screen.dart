@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_services.dart';
 import 'loading_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -177,10 +178,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
       // ignore: unused_local_variable
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final userCredential = await FirebaseServices.auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       if (!mounted) return;
       await showDialog(
@@ -384,11 +383,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
+                        ),
                       ),
                     ),
                   ),
-                  ),
-            ]);
+                ],
+              );
             },
           ),
         ),

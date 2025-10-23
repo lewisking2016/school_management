@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_services.dart';
 import 'social_login_buttons.dart';
 import 'loading_screen.dart';
 
@@ -74,7 +75,7 @@ class _LogInScreenState extends State<LogInScreen>
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
-      final userCredential = await FirebaseAuth.instance
+      final userCredential = await FirebaseServices.auth
           .signInWithEmailAndPassword(email: email, password: password);
 
       if (!mounted) return;
