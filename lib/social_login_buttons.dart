@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:school_management/firebase_services.dart';
 import 'loading_screen.dart';
 
 class SocialLoginButtons extends StatelessWidget {
@@ -37,7 +36,7 @@ class SocialLoginButtons extends StatelessWidget {
       );
 
       // 5. Sign in to Firebase with the Google credentials
-      final UserCredential userCredential = await FirebaseServices.auth
+      final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential);
 
       // 6. Manually update the user's profile information in Firebase
@@ -79,7 +78,7 @@ class SocialLoginButtons extends StatelessWidget {
       });
 
       // 3. Sign in asynchronously
-      final UserCredential userCredential = await FirebaseServices.auth
+      final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithPopup(provider);
 
       final User? user = userCredential.user;
