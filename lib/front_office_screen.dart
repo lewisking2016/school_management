@@ -54,11 +54,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
         controller: _tabController,
         children: [
           const _AdmissionEnquiryTab(), // Replaced with the new tab content
-          _buildPlaceholderTab(
-            icon: Icons.book_online_outlined,
-            title: 'Visitor Book',
-            description: 'Check-in and manage all incoming visitors here.',
-          ),
+          const _VisitorBookTab(), // Replaced placeholder with the new tab content
           _buildPlaceholderTab(
             icon: Icons.phone_in_talk_outlined,
             title: 'Phone Call Log',
@@ -394,6 +390,266 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
         return Colors.blue;
       case 'Enrolled':
         return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+}
+
+// New widget for the Visitor Book Tab
+class _VisitorBookTab extends StatefulWidget {
+  const _VisitorBookTab();
+
+  @override
+  State<_VisitorBookTab> createState() => _VisitorBookTabState();
+}
+
+class _VisitorBookTabState extends State<_VisitorBookTab> {
+  // Dummy data for visitors
+  final List<Map<String, String>> _visitors = [
+    {
+      'visitorId': 'VIS001',
+      'name': 'Mark Johnson',
+      'company': 'Tech Solutions Ltd.',
+      'purpose': 'Meeting with Principal',
+      'personToMeet': 'Mr. Harrison',
+      'transport': 'Car',
+      'vehicleNo': 'KDA 456B',
+      'checkIn': '2023-10-21 09:15 AM',
+      'checkOut': '2023-10-21 10:30 AM',
+      'status': 'Checked Out',
+    },
+    {
+      'visitorId': 'VIS002',
+      'name': 'Sarah Lee',
+      'company': 'Parent',
+      'purpose': 'Fee Payment',
+      'personToMeet': 'Accounts Office',
+      'transport': 'Walk-in',
+      'vehicleNo': 'N/A',
+      'checkIn': '2023-10-21 11:00 AM',
+      'checkOut': '',
+      'status': 'Checked In',
+    },
+    {
+      'visitorId': 'VIS003',
+      'name': 'David Chen',
+      'company': 'Book Supplies Inc.',
+      'purpose': 'Delivery',
+      'personToMeet': 'Librarian',
+      'transport': 'Motorbike',
+      'vehicleNo': 'KMEF 123Z',
+      'checkIn': '2023-10-21 11:45 AM',
+      'checkOut': '',
+      'status': 'Checked In',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final int totalVisitors = _visitors.length;
+    final int currentlyIn = _visitors
+        .where((v) => v['status'] == 'Checked In')
+        .length;
+    final int checkedOut = _visitors
+        .where((v) => v['status'] == 'Checked Out')
+        .length;
+    const int securityAlerts = 0; // Placeholder for security alerts
+
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Visitor Book Overview',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Summary Cards
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.5,
+              children: [
+                _buildSummaryCard(
+                  context,
+                  'Total Visitors',
+                  totalVisitors.toString(),
+                  Icons.groups_outlined,
+                  Colors.blue,
+                ),
+                _buildSummaryCard(
+                  context,
+                  'Currently In',
+                  currentlyIn.toString(),
+                  Icons.login_outlined,
+                  Colors.green,
+                ),
+                _buildSummaryCard(
+                  context,
+                  'Checked Out',
+                  checkedOut.toString(),
+                  Icons.logout_outlined,
+                  Colors.orange,
+                ),
+                _buildSummaryCard(
+                  context,
+                  'Security Alerts',
+                  securityAlerts.toString(),
+                  Icons.security_outlined,
+                  Colors.red,
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Visitor Records',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Visitor List/Table
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Visitor ID')),
+                    DataColumn(label: Text('Name')),
+                    DataColumn(label: Text('Company')),
+                    DataColumn(label: Text('Purpose')),
+                    DataColumn(label: Text('Person to Meet')),
+                    DataColumn(label: Text('Transport')),
+                    DataColumn(label: Text('Vehicle No.')),
+                    DataColumn(label: Text('Check In')),
+                    DataColumn(label: Text('Check Out')),
+                    DataColumn(label: Text('Status')),
+                    DataColumn(label: Text('Actions')),
+                  ],
+                  rows: _visitors.map((visitor) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(visitor['visitorId']!)),
+                        DataCell(Text(visitor['name']!)),
+                        DataCell(Text(visitor['company']!)),
+                        DataCell(Text(visitor['purpose']!)),
+                        DataCell(Text(visitor['personToMeet']!)),
+                        DataCell(Text(visitor['transport']!)),
+                        DataCell(Text(visitor['vehicleNo']!)),
+                        DataCell(Text(visitor['checkIn']!)),
+                        DataCell(Text(visitor['checkOut']!)),
+                        DataCell(
+                          Chip(
+                            label: Text(visitor['status']!),
+                            backgroundColor: _getStatusColor(
+                              visitor['status']!,
+                            ),
+                            labelStyle: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DataCell(
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 20),
+                                onPressed: () {
+                                  // todo: Implement edit functionality
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, size: 20),
+                                onPressed: () {
+                                  // todo: Implement delete functionality
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          // todo: Implement check in new visitor functionality
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Check-in new visitor form coming soon!'),
+            ),
+          );
+        },
+        label: const Text('Check In New Visitor'),
+        icon: const Icon(Icons.person_add_alt_1_outlined),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(
+    BuildContext context,
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(icon, size: 36, color: color),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Checked In':
+        return Colors.green;
+      case 'Checked Out':
+        return Colors.orange;
       default:
         return Colors.grey;
     }
