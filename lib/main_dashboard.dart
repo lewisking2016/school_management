@@ -13,6 +13,7 @@ class MainDashboardScreen extends StatefulWidget {
 class _MainDashboardScreenState extends State<MainDashboardScreen> {
   User? user = FirebaseAuth.instance.currentUser;
   int _selectedIndex = 0;
+  int _attendanceChartIndex = 0; // For the attendance chart PageView
 
   final List<Map<String, dynamic>> destinations = [
     {'icon': Icons.space_dashboard_outlined, 'label': 'Home'}, // Dashboard
@@ -247,45 +248,47 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           const SizedBox(height: 32),
           _buildShortcuts(theme),
           const SizedBox(height: 32),
-          Row(
-            children: [
-              Icon(Icons.show_chart_rounded, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'Weekly Attendance Summary',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            'Weekly Attendance Summary',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 16),
-          // Split attendance charts
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Swipeable attendance charts with page indicators
+          Column(
             children: [
-              Expanded(
-                child: _buildAttendanceCard(
-                  theme,
-                  title: 'Student Attendance',
-                  data: const [245, 248, 235, 240, 250],
-                  total: 250,
-                  cardAccentColor: Colors.blue.shade700, // Student card accent
-                  chartBarColor: Colors.orange.shade400, // Student bar color
+              SizedBox(
+                height: 400, // Height of the chart cards
+                child: PageView(
+                  controller: PageController(viewportFraction: 0.9),
+                  onPageChanged: (index) {
+                    setState(() {
+                      _attendanceChartIndex = index;
+                    });
+                  },
+                  children: [
+                    _buildAttendanceCard(
+                      theme,
+                      title: 'Student Attendance',
+                      data: const [245, 248, 235, 240, 250],
+                      total: 250,
+                      cardAccentColor: Colors.blue.shade700,
+                      chartBarColor: Colors.orange.shade400,
+                    ),
+                    _buildAttendanceCard(
+                      theme,
+                      title: 'Teacher Attendance',
+                      data: const [28, 30, 30, 29, 27],
+                      total: 30,
+                      cardAccentColor: Colors.orange.shade700,
+                      chartBarColor: Colors.blue.shade400,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _buildAttendanceCard(
-                  theme,
-                  title: 'Teacher Attendance',
-                  data: const [28, 30, 30, 29, 27],
-                  total: 30,
-                  cardAccentColor:
-                      Colors.orange.shade700, // Teacher card accent
-                  chartBarColor: Colors.blue.shade400, // Teacher bar color
-                ),
-              ),
+              const SizedBox(height: 12),
+              _buildPageIndicator(2),
             ],
           ),
           const SizedBox(height: 32),
@@ -430,13 +433,17 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     return SizedBox(
       height: 130,
       child: PageView.builder(
-        controller: PageController(viewportFraction: 0.85),
+        controller: PageController(
+          viewportFraction: 0.9,
+        ), // Adjusted for better spacing
         padEnds: false,
         itemCount: shortcutItems.length,
         itemBuilder: (context, index) {
           final item = shortcutItems[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 16.0),
+          return Container(
+            margin: const EdgeInsets.only(
+              right: 12.0,
+            ), // Add margin between cards
             child: DashboardCard(item: item),
           );
         },
@@ -453,7 +460,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     Color? chartBarColor,
   }) {
     return SizedBox(
-      height: 400,
+      height: 400, // This height is now controlled by the parent SizedBox
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -491,6 +498,26 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPageIndicator(int pageCount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(pageCount, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+          height: 8.0,
+          width: _attendanceChartIndex == index ? 24.0 : 8.0,
+          decoration: BoxDecoration(
+            color: _attendanceChartIndex == index
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey.shade400,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      }),
     );
   }
 }
@@ -651,55 +678,59 @@ extension _MainDashboardScreenStateActivities on _MainDashboardScreenState {
     ];
 
     return Card(
+      // Wrap ExpansionTile in a Card for consistent styling
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Recent Activities',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...activities.map(
-              (activity) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withOpacity(0.1)),
-                ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue.shade100,
-                    foregroundColor: Colors.blue.shade800,
-                    child: Icon(activity.icon, size: 22),
-                  ),
-                  title: Text(
-                    activity.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    activity.description,
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                  trailing: Text(
-                    activity.time,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        title: Text(
+          'Recent Activities',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              children: activities
+                  .map(
+                    (activity) => Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                      ),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blue.shade100,
+                          foregroundColor: Colors.blue.shade800,
+                          child: Icon(activity.icon, size: 22),
+                        ),
+                        title: Text(
+                          activity.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          activity.description,
+                          style: TextStyle(color: Colors.grey.shade700),
+                        ),
+                        trailing: Text(
+                          activity.time,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -727,49 +758,55 @@ extension _MainDashboardScreenStateActivities on _MainDashboardScreenState {
     ];
 
     return Card(
+      // Wrap ExpansionTile in a Card
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Upcoming Events',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...activities.map(
-              (activity) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.withOpacity(0.1)),
-                ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.orange.shade100,
-                    foregroundColor: Colors.orange.shade800,
-                    child: Icon(activity.icon, size: 22),
-                  ),
-                  title: Text(
-                    activity.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    '${activity.date}, ${activity.time}',
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                ),
-              ),
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        title: Text(
+          'Upcoming Events',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              children: activities
+                  .map(
+                    (activity) => Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.orange.withOpacity(0.1),
+                        ),
+                      ),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.orange.shade100,
+                          foregroundColor: Colors.orange.shade800,
+                          child: Icon(activity.icon, size: 22),
+                        ),
+                        title: Text(
+                          activity.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '${activity.date}, ${activity.time}',
+                          style: TextStyle(color: Colors.grey.shade700),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
       ),
     );
   }

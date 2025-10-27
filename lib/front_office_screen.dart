@@ -19,19 +19,38 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
     {'icon': Icons.outbox_outlined, 'label': 'Postal Dispatch'},
     {'icon': Icons.move_to_inbox_outlined, 'label': 'Postal Receive'},
     {'icon': Icons.report_problem_outlined, 'label': 'Complain'},
-    {'icon': Icons.settings_outlined, 'label': 'Setup'},
+    {'icon': Icons.settings_outlined, 'label': 'Setup Front Office'},
   ];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    // Add a listener to rebuild the FAB when the tab changes.
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// Builds a FAB based on the currently selected tab.
+  Widget? _buildFloatingActionButton() {
+    final currentTabLabel = _tabs[_tabController.index]['label'];
+    if (currentTabLabel == 'Admission Enquiry') {
+      // This button is now moved inside the _AdmissionEnquiryTab widget.
+      return null;
+    } else if (currentTabLabel == 'Visitor Book') {
+      // This button is now moved inside the _VisitorBookTab widget.
+      return null;
+    }
+    return null;
   }
 
   @override
@@ -84,6 +103,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
           ),
         ],
       ),
+      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
@@ -135,6 +155,33 @@ class _AdmissionEnquiryTab extends StatefulWidget {
 }
 
 class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
+  int _summaryCardIndex = 0;
+  final List<Map<String, dynamic>> _summaryData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Populate summary data here to avoid doing it in every build
+    _summaryData.addAll([
+      {
+        'title': 'Total Enquiries',
+        'icon': Icons.list_alt,
+        'color': Colors.blue,
+      },
+      {
+        'title': 'New Enquiries',
+        'icon': Icons.fiber_new,
+        'color': Colors.orange,
+      },
+      {'title': 'Enrolled', 'icon': Icons.school, 'color': Colors.green},
+      {
+        'title': 'Contacted',
+        'icon': Icons.phone_in_talk,
+        'color': Colors.purple,
+      },
+    ]);
+  }
+
   // Dummy data for enquiries
   final List<Map<String, String>> _enquiries = [
     {
@@ -191,6 +238,7 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
 
     return Scaffold(
       body: SingleChildScrollView(
+        // The SingleChildScrollView should be the body of the Scaffold
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,42 +251,39 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
             ),
             const SizedBox(height: 24),
             // Summary Cards
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.5, // Adjust aspect ratio for card size
+            Column(
               children: [
-                _buildSummaryCard(
-                  context,
-                  'Total Enquiries',
-                  totalEnquiries.toString(),
-                  Icons.list_alt,
-                  Colors.blue,
+                SizedBox(
+                  height: 140, // Give the PageView a fixed height
+                  child: PageView.builder(
+                    controller: PageController(viewportFraction: 0.85),
+                    itemCount: _summaryData.length,
+                    onPageChanged: (index) {
+                      setState(() => _summaryCardIndex = index);
+                    },
+                    itemBuilder: (context, index) {
+                      final item = _summaryData[index];
+                      final values = [
+                        totalEnquiries,
+                        newEnquiries,
+                        enrolledEnquiries,
+                        contactedEnquiries,
+                      ];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: _buildSummaryCard(
+                          context,
+                          item['title'],
+                          values[index].toString(),
+                          item['icon'],
+                          item['color'],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                _buildSummaryCard(
-                  context,
-                  'New Enquiries',
-                  newEnquiries.toString(),
-                  Icons.fiber_new,
-                  Colors.orange,
-                ),
-                _buildSummaryCard(
-                  context,
-                  'Enrolled',
-                  enrolledEnquiries.toString(),
-                  Icons.school,
-                  Colors.green,
-                ),
-                _buildSummaryCard(
-                  context,
-                  'Contacted',
-                  contactedEnquiries.toString(),
-                  Icons.phone_in_talk,
-                  Colors.purple,
-                ),
+                const SizedBox(height: 12),
+                _buildPageIndicator(_summaryData.length, _summaryCardIndex),
               ],
             ),
             const SizedBox(height: 32),
@@ -324,18 +369,30 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+            // Add New Enquiry Button - Moved here from FAB
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Add New Enquiry form coming soon!'),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Add New Enquiry'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // todo: Implement add new enquiry functionality
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Add New Enquiry form coming soon!')),
-          );
-        },
-        label: const Text('Add New Enquiry'),
-        icon: const Icon(Icons.add),
       ),
     );
   }
@@ -394,6 +451,26 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
         return Colors.grey;
     }
   }
+
+  Widget _buildPageIndicator(int pageCount, int currentIndex) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(pageCount, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+          height: 8.0,
+          width: currentIndex == index ? 24.0 : 8.0,
+          decoration: BoxDecoration(
+            color: currentIndex == index
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey.shade400,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      }),
+    );
+  }
 }
 
 // New widget for the Visitor Book Tab
@@ -405,6 +482,37 @@ class _VisitorBookTab extends StatefulWidget {
 }
 
 class _VisitorBookTabState extends State<_VisitorBookTab> {
+  int _summaryCardIndex = 0;
+  final List<Map<String, dynamic>> _summaryData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Populate summary data here
+    _summaryData.addAll([
+      {
+        'title': 'Total Visitors',
+        'icon': Icons.groups_outlined,
+        'color': Colors.blue,
+      },
+      {
+        'title': 'Currently In',
+        'icon': Icons.login_outlined,
+        'color': Colors.green,
+      },
+      {
+        'title': 'Checked Out',
+        'icon': Icons.logout_outlined,
+        'color': Colors.orange,
+      },
+      {
+        'title': 'Security Alerts',
+        'icon': Icons.security_outlined,
+        'color': Colors.red,
+      },
+    ]);
+  }
+
   // Dummy data for visitors
   final List<Map<String, String>> _visitors = [
     {
@@ -457,147 +565,151 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
         .length;
     const int securityAlerts = 0; // Placeholder for security alerts
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Visitor Book Overview',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+    return SingleChildScrollView(
+      // This is now the root widget of the tab
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Visitor Book Overview',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 24),
-            // Summary Cards
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.5,
-              children: [
-                _buildSummaryCard(
-                  context,
-                  'Total Visitors',
-                  totalVisitors.toString(),
-                  Icons.groups_outlined,
-                  Colors.blue,
-                ),
-                _buildSummaryCard(
-                  context,
-                  'Currently In',
-                  currentlyIn.toString(),
-                  Icons.login_outlined,
-                  Colors.green,
-                ),
-                _buildSummaryCard(
-                  context,
-                  'Checked Out',
-                  checkedOut.toString(),
-                  Icons.logout_outlined,
-                  Colors.orange,
-                ),
-                _buildSummaryCard(
-                  context,
-                  'Security Alerts',
-                  securityAlerts.toString(),
-                  Icons.security_outlined,
-                  Colors.red,
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Visitor Records',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Visitor List/Table
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Visitor ID')),
-                    DataColumn(label: Text('Name')),
-                    DataColumn(label: Text('Company')),
-                    DataColumn(label: Text('Purpose')),
-                    DataColumn(label: Text('Person to Meet')),
-                    DataColumn(label: Text('Transport')),
-                    DataColumn(label: Text('Vehicle No.')),
-                    DataColumn(label: Text('Check In')),
-                    DataColumn(label: Text('Check Out')),
-                    DataColumn(label: Text('Status')),
-                    DataColumn(label: Text('Actions')),
-                  ],
-                  rows: _visitors.map((visitor) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(visitor['visitorId']!)),
-                        DataCell(Text(visitor['name']!)),
-                        DataCell(Text(visitor['company']!)),
-                        DataCell(Text(visitor['purpose']!)),
-                        DataCell(Text(visitor['personToMeet']!)),
-                        DataCell(Text(visitor['transport']!)),
-                        DataCell(Text(visitor['vehicleNo']!)),
-                        DataCell(Text(visitor['checkIn']!)),
-                        DataCell(Text(visitor['checkOut']!)),
-                        DataCell(
-                          Chip(
-                            label: Text(visitor['status']!),
-                            backgroundColor: _getStatusColor(
-                              visitor['status']!,
-                            ),
-                            labelStyle: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        DataCell(
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () {
-                                  // todo: Implement edit functionality
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, size: 20),
-                                onPressed: () {
-                                  // todo: Implement delete functionality
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+          ),
+          const SizedBox(height: 24),
+          // Summary Cards
+          Column(
+            children: [
+              SizedBox(
+                height: 140,
+                child: PageView.builder(
+                  controller: PageController(viewportFraction: 0.85),
+                  itemCount: _summaryData.length,
+                  onPageChanged: (index) {
+                    setState(() => _summaryCardIndex = index);
+                  },
+                  itemBuilder: (context, index) {
+                    final item = _summaryData[index];
+                    final values = [
+                      totalVisitors,
+                      currentlyIn,
+                      checkedOut,
+                      securityAlerts,
+                    ];
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: _buildSummaryCard(
+                        context,
+                        item['title'],
+                        values[index].toString(),
+                        item['icon'],
+                        item['color'],
+                      ),
                     );
-                  }).toList(),
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildPageIndicator(_summaryData.length, _summaryCardIndex),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'Visitor Records',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Visitor List/Table
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('Visitor ID')),
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Company')),
+                  DataColumn(label: Text('Purpose')),
+                  DataColumn(label: Text('Person to Meet')),
+                  DataColumn(label: Text('Transport')),
+                  DataColumn(label: Text('Vehicle No.')),
+                  DataColumn(label: Text('Check In')),
+                  DataColumn(label: Text('Check Out')),
+                  DataColumn(label: Text('Status')),
+                  DataColumn(label: Text('Actions')),
+                ],
+                rows: _visitors.map((visitor) {
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(visitor['visitorId']!)),
+                      DataCell(Text(visitor['name']!)),
+                      DataCell(Text(visitor['company']!)),
+                      DataCell(Text(visitor['purpose']!)),
+                      DataCell(Text(visitor['personToMeet']!)),
+                      DataCell(Text(visitor['transport']!)),
+                      DataCell(Text(visitor['vehicleNo']!)),
+                      DataCell(Text(visitor['checkIn']!)),
+                      DataCell(Text(visitor['checkOut']!)),
+                      DataCell(
+                        Chip(
+                          label: Text(visitor['status']!),
+                          backgroundColor: _getStatusColor(visitor['status']!),
+                          labelStyle: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      DataCell(
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 20),
+                              onPressed: () {
+                                // todo: Implement edit functionality
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 20),
+                              onPressed: () {
+                                // todo: Implement delete functionality
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Check In New Visitor Button - Moved here from FAB
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Check-in new visitor form coming soon!'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              label: const Text('Check In New Visitor'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // todo: Implement check in new visitor functionality
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Check-in new visitor form coming soon!'),
-            ),
-          );
-        },
-        label: const Text('Check In New Visitor'),
-        icon: const Icon(Icons.person_add_alt_1_outlined),
+          ),
+        ],
       ),
     );
   }
@@ -641,6 +753,26 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPageIndicator(int pageCount, int currentIndex) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(pageCount, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+          height: 8.0,
+          width: currentIndex == index ? 24.0 : 8.0,
+          decoration: BoxDecoration(
+            color: currentIndex == index
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey.shade400,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      }),
     );
   }
 

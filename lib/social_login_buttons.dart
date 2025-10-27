@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'loading_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class SocialLoginButtons extends StatelessWidget {
   const SocialLoginButtons({super.key});
@@ -77,9 +78,17 @@ class SocialLoginButtons extends StatelessWidget {
         'tenant': 'e4e32b55-027c-4d94-986b-1f2a460f295e',
       });
 
-      // 3. Sign in asynchronously
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithPopup(provider);
+      // 3. Sign in using the correct method for the platform (web vs. mobile)
+      final UserCredential userCredential;
+      if (kIsWeb) {
+        // Use signInWithPopup for web environments
+        userCredential = await FirebaseAuth.instance.signInWithPopup(provider);
+      } else {
+        // Use signInWithProvider for mobile (Android/iOS)
+        userCredential = await FirebaseAuth.instance.signInWithProvider(
+          provider,
+        );
+      }
 
       final User? user = userCredential.user;
 

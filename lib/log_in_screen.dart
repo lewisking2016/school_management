@@ -104,7 +104,7 @@ class _LogInScreenState extends State<LogInScreen>
           message = 'The email address is not valid.';
           break;
         default:
-          message = 'An error occurred. Please try again.';
+          message = e.message ?? 'An unknown error occurred. Please try again.';
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

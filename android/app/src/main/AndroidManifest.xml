@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.school_management">
+    <!-- Required for Firebase and other network operations -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="school_management"
         android:name="${applicationName}"
