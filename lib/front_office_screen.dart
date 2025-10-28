@@ -158,7 +158,6 @@ class _AdmissionEnquiryTab extends StatefulWidget {
 }
 
 class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
-  int _summaryCardIndex = 0;
   final List<Map<String, dynamic>> _summaryData = [];
 
   @override
@@ -190,219 +189,214 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('admission_enquiries')
-            .orderBy('enquiryDate', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(child: Text('Something went wrong'));
-          }
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('admission_enquiries')
+              .orderBy('enquiryDate', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Something went wrong'));
+            }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final docs = snapshot.data!.docs;
+            final docs = snapshot.data!.docs;
 
-          if (docs.isEmpty) {
-            return const Center(child: Text('No admission enquiries found.'));
-          }
+            if (docs.isEmpty) {
+              return const Center(child: Text('No admission enquiries found.'));
+            }
 
-          // Calculate summary data from the live snapshot
-          final int totalEnquiries = docs.length;
-          final int newEnquiries = docs
-              .where((d) => (d.data() as Map)['status'] == 'New')
-              .length;
-          final int enrolledEnquiries = docs
-              .where((d) => (d.data() as Map)['status'] == 'Enrolled')
-              .length;
-          final int contactedEnquiries = docs
-              .where((d) => (d.data() as Map)['status'] == 'Contacted')
-              .length;
+            // Calculate summary data from the live snapshot
+            final int totalEnquiries = docs.length;
+            final int newEnquiries = docs
+                .where((d) => (d.data() as Map)['status'] == 'New')
+                .length;
+            final int enrolledEnquiries = docs
+                .where((d) => (d.data() as Map)['status'] == 'Enrolled')
+                .length;
+            final int contactedEnquiries = docs
+                .where((d) => (d.data() as Map)['status'] == 'Contacted')
+                .length;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Admission Enquiry Overview',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Summary Cards
-                Column(
-                  children: [
-                    SizedBox(
-                      height: 140, // Give the PageView a fixed height
-                      child: PageView.builder(
-                        controller: PageController(viewportFraction: 0.85),
-                        itemCount: _summaryData.length,
-                        onPageChanged: (index) {
-                          setState(() => _summaryCardIndex = index);
-                        },
-                        itemBuilder: (context, index) {
-                          final item = _summaryData[index];
-                          final values = [
-                            totalEnquiries,
-                            newEnquiries,
-                            enrolledEnquiries,
-                            contactedEnquiries,
-                          ];
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: _buildSummaryCard(
-                              context,
-                              item['title'],
-                              values[index].toString(),
-                              item['icon'],
-                              item['color'],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPageIndicator(_summaryData.length, _summaryCardIndex),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Enquiry Records',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Enquiry List/Table
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text('Enquiry No.')),
-                        DataColumn(label: Text('Student Name')),
-                        DataColumn(label: Text('Father\'s Name')),
-                        DataColumn(label: Text('Father\'s Phone')),
-                        DataColumn(label: Text('Enquiry Date')),
-                        DataColumn(label: Text('Status')),
-                        DataColumn(label: Text('Source')),
-                        DataColumn(label: Text('Actions')),
-                      ],
-                      rows: docs.map((doc) {
-                        final enquiry = doc.data() as Map<String, dynamic>;
-                        return DataRow(
-                          cells: [
-                            DataCell(Text(enquiry['enquiryNo'] ?? '')),
-                            DataCell(Text(enquiry['studentName'] ?? '')),
-                            DataCell(Text(enquiry['fatherName'] ?? '')),
-                            DataCell(Text(enquiry['fatherPhone'] ?? '')),
-                            DataCell(Text(enquiry['enquiryDate'] ?? '')),
-                            DataCell(
-                              Chip(
-                                label: Text(enquiry['status'] ?? 'N/A'),
-                                backgroundColor: _getStatusColor(
-                                  enquiry['status'] ?? '',
-                                ),
-                                labelStyle: const TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DataCell(Text(enquiry['source'] ?? '')),
-                            DataCell(
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 20),
-                                    onPressed: () {
-                                      // todo: Implement edit functionality
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Edit ${enquiry['enquiryNo']}',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, size: 20),
-                                    onPressed: () {
-                                      // todo: Implement delete functionality
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Delete ${enquiry['enquiryNo']}',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Admission Enquiry Overview',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                // Add New Enquiry Button - Moved here from FAB
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (context) {
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: MediaQuery.of(context).viewInsets.bottom,
-                            ),
-                            child: const _AddAdmissionEnquiryForm(),
-                          );
-                        },
-                      ).then((value) {
-                        if (value == true) {
-                          // Data is refreshed automatically by StreamBuilder
-                        }
-                      });
+                  const SizedBox(height: 24),
+                  // Summary Cards
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.9,
+                        ),
+                    itemCount: _summaryData.length,
+                    itemBuilder: (context, index) {
+                      final item = _summaryData[index];
+                      final values = [
+                        totalEnquiries,
+                        newEnquiries,
+                        enrolledEnquiries,
+                        contactedEnquiries,
+                      ];
+                      return _buildSmallSummaryCard(
+                        item['title'],
+                        values[index].toString(),
+                        item['icon'],
+                        item['color'],
+                      );
                     },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add New Enquiry'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Enquiry Records',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Enquiry List/Table
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Enquiry No.')),
+                          DataColumn(label: Text('Student Name')),
+                          DataColumn(label: Text('Father\'s Name')),
+                          DataColumn(label: Text('Father\'s Phone')),
+                          DataColumn(label: Text('Enquiry Date')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Source')),
+                          DataColumn(label: Text('Actions')),
+                        ],
+                        rows: docs.map((doc) {
+                          final enquiry = doc.data() as Map<String, dynamic>;
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(enquiry['enquiryNo'] ?? '')),
+                              DataCell(Text(enquiry['studentName'] ?? '')),
+                              DataCell(Text(enquiry['fatherName'] ?? '')),
+                              DataCell(Text(enquiry['fatherPhone'] ?? '')),
+                              DataCell(Text(enquiry['enquiryDate'] ?? '')),
+                              DataCell(
+                                Chip(
+                                  label: Text(enquiry['status'] ?? 'N/A'),
+                                  backgroundColor: _getStatusColor(
+                                    enquiry['status'] ?? '',
+                                  ),
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              DataCell(Text(enquiry['source'] ?? '')),
+                              DataCell(
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      onPressed: () {
+                                        // todo: Implement edit functionality
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Edit ${enquiry['enquiryNo']}',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, size: 20),
+                                      onPressed: () {
+                                        // todo: Implement delete functionality
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Delete ${enquiry['enquiryNo']}',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  const SizedBox(height: 24),
+                  // Add New Enquiry Button - Moved here from FAB
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) {
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: MediaQuery.of(
+                                  context,
+                                ).viewInsets.bottom,
+                              ),
+                              child: const _AddAdmissionEnquiryForm(),
+                            );
+                          },
+                        ).then((value) {
+                          if (value == true) {
+                            // Data is refreshed automatically by StreamBuilder
+                          }
+                        });
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add New Enquiry'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context,
+  Widget _buildSmallSummaryCard(
     String title,
     String value,
     IconData icon,
@@ -410,69 +404,34 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
   ) {
     final theme = Theme.of(context);
     return Card(
-      elevation: 2,
+      elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, size: 36, color: color),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ],
+            Icon(icon, size: 24, color: color),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'New':
-        return Colors.orange;
-      case 'Contacted':
-        return Colors.blue;
-      case 'Enrolled':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Widget _buildPageIndicator(int pageCount, int currentIndex) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(pageCount, (index) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4.0),
-          height: 8.0,
-          width: currentIndex == index ? 24.0 : 8.0,
-          decoration: BoxDecoration(
-            color: currentIndex == index
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey.shade400,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        );
-      }),
     );
   }
 }
@@ -485,7 +444,6 @@ class _VisitorBookTab extends StatefulWidget {
 }
 
 class _VisitorBookTabState extends State<_VisitorBookTab> {
-  int _summaryCardIndex = 0;
   final List<Map<String, dynamic>> _summaryData = [];
 
   @override
@@ -516,209 +474,203 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
     ]);
   }
 
-  // Dummy data for visitors
-  final List<Map<String, String>> _visitors = [
-    {
-      'visitorId': 'VIS001',
-      'name': 'Mark Johnson',
-      'company': 'Tech Solutions Ltd.',
-      'purpose': 'Meeting with Principal',
-      'personToMeet': 'Mr. Harrison',
-      'transport': 'Car',
-      'vehicleNo': 'KDA 456B',
-      'checkIn': '2023-10-21 09:15 AM',
-      'checkOut': '2023-10-21 10:30 AM',
-      'status': 'Checked Out',
-    },
-    {
-      'visitorId': 'VIS002',
-      'name': 'Sarah Lee',
-      'company': 'Parent',
-      'purpose': 'Fee Payment',
-      'personToMeet': 'Accounts Office',
-      'transport': 'Walk-in',
-      'vehicleNo': 'N/A',
-      'checkIn': '2023-10-21 11:00 AM',
-      'checkOut': '',
-      'status': 'Checked In',
-    },
-    {
-      'visitorId': 'VIS003',
-      'name': 'David Chen',
-      'company': 'Book Supplies Inc.',
-      'purpose': 'Delivery',
-      'personToMeet': 'Librarian',
-      'transport': 'Motorbike',
-      'vehicleNo': 'KMEF 123Z',
-      'checkIn': '2023-10-21 11:45 AM',
-      'checkOut': '',
-      'status': 'Checked In',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final int totalVisitors = _visitors.length;
-    final int currentlyIn = _visitors
-        .where((v) => v['status'] == 'Checked In')
-        .length;
-    final int checkedOut = _visitors
-        .where((v) => v['status'] == 'Checked Out')
-        .length;
-    const int securityAlerts = 0; // Placeholder for security alerts
 
-    return SingleChildScrollView(
-      // This is now the root widget of the tab
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Visitor Book Overview',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Summary Cards
-          Column(
-            children: [
-              SizedBox(
-                height: 140,
-                child: PageView.builder(
-                  controller: PageController(viewportFraction: 0.85),
-                  itemCount: _summaryData.length,
-                  onPageChanged: (index) {
-                    setState(() => _summaryCardIndex = index);
-                  },
-                  itemBuilder: (context, index) {
-                    final item = _summaryData[index];
-                    final values = [
-                      totalVisitors,
-                      currentlyIn,
-                      checkedOut,
-                      securityAlerts,
-                    ];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: _buildSummaryCard(
-                        context,
+    return Scaffold(
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('visitors')
+              .orderBy('checkInTime', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Something went wrong'));
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs;
+
+            if (docs.isEmpty) {
+              return const Center(child: Text('No visitors found.'));
+            }
+
+            // Calculate summary data from the live snapshot
+            final int totalVisitors = docs.length;
+            final int currentlyIn = docs
+                .where((d) => (d.data() as Map)['status'] == 'Checked In')
+                .length;
+            final int checkedOut = docs
+                .where((d) => (d.data() as Map)['status'] == 'Checked Out')
+                .length;
+            const int securityAlerts = 0; // Placeholder for security alerts
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Visitor Book Overview',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Summary Cards
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.9,
+                        ),
+                    itemCount: _summaryData.length,
+                    itemBuilder: (context, index) {
+                      final item = _summaryData[index];
+                      final values = [
+                        totalVisitors,
+                        currentlyIn,
+                        checkedOut,
+                        securityAlerts,
+                      ];
+                      return _buildSmallSummaryCard(
                         item['title'],
                         values[index].toString(),
                         item['icon'],
                         item['color'],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildPageIndicator(_summaryData.length, _summaryCardIndex),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'Visitor Records',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Visitor List/Table
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Visitor ID')),
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Company')),
-                  DataColumn(label: Text('Purpose')),
-                  DataColumn(label: Text('Person to Meet')),
-                  DataColumn(label: Text('Transport')),
-                  DataColumn(label: Text('Vehicle No.')),
-                  DataColumn(label: Text('Check In')),
-                  DataColumn(label: Text('Check Out')),
-                  DataColumn(label: Text('Status')),
-                  DataColumn(label: Text('Actions')),
-                ],
-                rows: _visitors.map((visitor) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(visitor['visitorId']!)),
-                      DataCell(Text(visitor['name']!)),
-                      DataCell(Text(visitor['company']!)),
-                      DataCell(Text(visitor['purpose']!)),
-                      DataCell(Text(visitor['personToMeet']!)),
-                      DataCell(Text(visitor['transport']!)),
-                      DataCell(Text(visitor['vehicleNo']!)),
-                      DataCell(Text(visitor['checkIn']!)),
-                      DataCell(Text(visitor['checkOut']!)),
-                      DataCell(
-                        Chip(
-                          label: Text(visitor['status']!),
-                          backgroundColor: _getStatusColor(visitor['status']!),
-                          labelStyle: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      DataCell(
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, size: 20),
-                              onPressed: () {
-                                // todo: Implement edit functionality
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, size: 20),
-                              onPressed: () {
-                                // todo: Implement delete functionality
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Check In New Visitor Button - Moved here from FAB
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Check-in new visitor form coming soon!'),
+                      );
+                    },
                   ),
-                );
-              },
-              icon: const Icon(Icons.person_add_alt_1_outlined),
-              label: const Text('Check In New Visitor'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Visitor Records',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Visitor List/Table
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Visitor ID')),
+                          DataColumn(label: Text('Name')),
+                          DataColumn(label: Text('Company')),
+                          DataColumn(label: Text('Purpose')),
+                          DataColumn(label: Text('Person to Meet')),
+                          DataColumn(label: Text('Transport')),
+                          DataColumn(label: Text('Vehicle No.')),
+                          DataColumn(label: Text('Check In')),
+                          DataColumn(label: Text('Check Out')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Actions')),
+                        ],
+                        rows: docs.map((doc) {
+                          final visitor = doc.data() as Map<String, dynamic>;
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(visitor['visitorId'] ?? '')),
+                              DataCell(Text(visitor['name'] ?? '')),
+                              DataCell(Text(visitor['company'] ?? '')),
+                              DataCell(Text(visitor['purpose'] ?? '')),
+                              DataCell(Text(visitor['personToMeet'] ?? '')),
+                              DataCell(Text(visitor['transportMode'] ?? 'N/A')),
+                              DataCell(Text(visitor['vehicleNumber'] ?? 'N/A')),
+                              DataCell(Text(visitor['checkInTime'] ?? '')),
+                              DataCell(
+                                Text(visitor['checkOutTime'] ?? ''),
+                              ), // Assuming this field might exist
+                              DataCell(
+                                Chip(
+                                  label: Text(visitor['status'] ?? 'N/A'),
+                                  backgroundColor: _getStatusColor(
+                                    visitor['status'] ?? '',
+                                  ),
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      onPressed: () {
+                                        // todo: Implement edit functionality
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, size: 20),
+                                      onPressed: () {
+                                        // todo: Implement delete functionality
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Check In New Visitor Button - Moved here from FAB
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) {
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: MediaQuery.of(
+                                  context,
+                                ).viewInsets.bottom,
+                              ),
+                              child: const _AddVisitorForm(),
+                            );
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.person_add_alt_1_outlined),
+                      label: const Text('Check In New Visitor'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context,
+  Widget _buildSmallSummaryCard(
     String title,
     String value,
     IconData icon,
@@ -726,56 +678,34 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
   ) {
     final theme = Theme.of(context);
     return Card(
-      elevation: 2,
+      elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, size: 36, color: color),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ],
+            Icon(icon, size: 24, color: color),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildPageIndicator(int pageCount, int currentIndex) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(pageCount, (index) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4.0),
-          height: 8.0,
-          width: currentIndex == index ? 24.0 : 8.0,
-          decoration: BoxDecoration(
-            color: currentIndex == index
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey.shade400,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        );
-      }),
     );
   }
 
@@ -788,6 +718,19 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
       default:
         return Colors.grey;
     }
+  }
+}
+
+Color _getStatusColor(String status) {
+  switch (status) {
+    case 'New':
+      return Colors.orange;
+    case 'Contacted':
+      return Colors.blue;
+    case 'Enrolled':
+      return Colors.green;
+    default:
+      return Colors.grey;
   }
 }
 
@@ -974,6 +917,240 @@ class _AddAdmissionEnquiryFormState extends State<_AddAdmissionEnquiryForm> {
                   ElevatedButton(
                     onPressed: _saveEnquiry,
                     child: const Text('Save Enquiry'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// New widget for the Add Visitor Form
+class _AddVisitorForm extends StatefulWidget {
+  const _AddVisitorForm();
+
+  @override
+  State<_AddVisitorForm> createState() => _AddVisitorFormState();
+}
+
+class _AddVisitorFormState extends State<_AddVisitorForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _visitorNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _companyController = TextEditingController();
+  final _personToMeetController = TextEditingController();
+  final _vehicleNumberController = TextEditingController();
+  final _remarksController = TextEditingController();
+
+  String? _selectedPurpose;
+  String? _selectedDepartment;
+  String? _selectedTransportMode;
+  bool _isVehicleNumberApplicable = false;
+
+  // Dummy data for dropdowns
+  final List<String> _purposes = [
+    'Meeting',
+    'Parent Visit',
+    'Delivery',
+    'Interview',
+    'Other',
+  ];
+  final List<String> _departments = [
+    'Principal\'s Office',
+    'Accounts',
+    'Admissions',
+    'HR',
+    'IT',
+  ];
+  final List<String> _transportModes = [
+    'Walk-in',
+    'Car',
+    'Motorbike',
+    'Bicycle',
+    'Other',
+  ];
+
+  @override
+  void dispose() {
+    _visitorNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _companyController.dispose();
+    _personToMeetController.dispose();
+    _vehicleNumberController.dispose();
+    _remarksController.dispose();
+    super.dispose();
+  }
+
+  void _updateVehicleNumberState(String? mode) {
+    setState(() {
+      _selectedTransportMode = mode;
+      _isVehicleNumberApplicable =
+          mode != null && mode != 'Walk-in' && mode != 'Bicycle';
+      if (!_isVehicleNumberApplicable) {
+        _vehicleNumberController.clear();
+      }
+    });
+  }
+
+  Future<void> _checkInVisitor() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        final firestore = FirebaseFirestore.instance;
+        const uuid = Uuid();
+        final visitorId = 'VIS-${uuid.v4().substring(0, 6).toUpperCase()}';
+
+        await firestore.collection('visitors').add({
+          'visitorId': visitorId,
+          'name': _visitorNameController.text,
+          'phone': _phoneController.text,
+          'email': _emailController.text,
+          'company': _companyController.text,
+          'purpose': _selectedPurpose,
+          'personToMeet': _personToMeetController.text,
+          'department': _selectedDepartment,
+          'transportMode': _selectedTransportMode,
+          'vehicleNumber': _vehicleNumberController.text,
+          'remarks': _remarksController.text,
+          'checkInTime': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+          'status': 'Checked In',
+        });
+
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Visitor checked in successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // ignore: empty_catches
+      } catch (e) {}
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Visitor Check In',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _visitorNameController,
+                decoration: const InputDecoration(labelText: 'Visitor Name*'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Visitor name is required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(labelText: 'Phone Number*'),
+                keyboardType: TextInputType.phone,
+                validator: (value) =>
+                    value!.isEmpty ? 'Phone number is required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _companyController,
+                decoration: const InputDecoration(
+                  labelText: 'Company/Organization',
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedPurpose,
+                decoration: const InputDecoration(
+                  labelText: 'Purpose of Visit*',
+                ),
+                items: _purposes
+                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedPurpose = value),
+                validator: (value) =>
+                    value == null ? 'Please select a purpose' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _personToMeetController,
+                decoration: const InputDecoration(labelText: 'Person to Meet*'),
+                validator: (value) =>
+                    value!.isEmpty ? 'This field is required' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedDepartment,
+                decoration: const InputDecoration(labelText: 'Department'),
+                items: _departments
+                    .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedDepartment = value),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedTransportMode,
+                decoration: const InputDecoration(
+                  labelText: 'Mode of Transport',
+                ),
+                items: _transportModes
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: _updateVehicleNumberState,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _vehicleNumberController,
+                decoration: InputDecoration(
+                  labelText: 'Vehicle Number Plate',
+                  hintText: _isVehicleNumberApplicable
+                      ? 'Enter vehicle number'
+                      : 'Not applicable',
+                ),
+                enabled: _isVehicleNumberApplicable,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _remarksController,
+                decoration: const InputDecoration(
+                  labelText: 'Remarks',
+                  hintText: 'Any additional notes...',
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: _checkInVisitor,
+                    icon: const Icon(Icons.login),
+                    label: const Text('Check In Visitor'),
                   ),
                 ],
               ),

@@ -53,9 +53,23 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     {'icon': Icons.person_outline, 'label': 'Profile'},
   ];
 
+  // List to hold the widget instances for the main content area.
+  // This prevents them from being rebuilt on every setState.
+  late final List<Widget> _mainContentScreens;
+  late final PageController _attendancePageController;
+
   @override
   void initState() {
     super.initState();
+    _mainContentScreens = List.generate(destinations.length, (index) {
+      final label = destinations[index]['label'];
+      // Pre-build the widgets that have complex state.
+      if (label == 'Front Office')
+        // ignore: curly_braces_in_flow_control_structures
+        return const FrontOfficeScreen(); // This is fine
+      return _buildPlaceholderWidget(label); // Use a context-free builder
+    });
+    _attendancePageController = PageController(viewportFraction: 0.9);
     _refreshUserData();
   }
 
@@ -77,6 +91,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     await FirebaseAuth.instance.signOut();
     // Navigate back to login and remove all previous routes
     navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
+  @override
+  void dispose() {
+    _attendancePageController.dispose();
+    super.dispose();
   }
 
   // Placeholder for profile picture upload logic
@@ -205,25 +225,47 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     );
   }
 
+  /// A context-free method to create placeholder widgets.
+  /// This is safe to call from initState.
+  Widget _buildPlaceholderWidget(String label) {
+    // For complex screens with their own state, we return them directly.
+    // For simple placeholders, we can return a builder that uses the context
+    // from the `build` method.
+    return Builder(
+      builder: (context) {
+        return _buildPlaceholderScreen(context, label);
+      },
+    );
+  }
+
+  /// Builds the actual placeholder screen using the provided context.
+  /// This is now only called from `build` or a `Builder`.
+  Widget _buildPlaceholderScreen(BuildContext context, String label) {
+    if (label == 'Home') return _buildDashboardHome(Theme.of(context));
+    if (label == 'Profile') return _buildProfileScreen(Theme.of(context));
+
+    // Default placeholder
+    return Center(
+      child: Text(
+        '$label Screen',
+        style: Theme.of(context).textTheme.headlineMedium,
+      ),
+    );
+  }
+
   Widget _buildMainContent(ThemeData theme) {
-    final String currentLabel = destinations[_selectedIndex]['label'];
-    // Main Dashboard UI
-    switch (currentLabel) {
-      case 'Home':
-        return _buildDashboardHome(theme);
-      case 'Profile':
-        return _buildProfileScreen(theme);
-      case 'Front Office':
-        return const FrontOfficeScreen();
-      default:
-        // Placeholder for other module screens
-        return Center(
-          child: Text(
-            '$currentLabel Screen',
-            style: theme.textTheme.headlineMedium,
-          ),
-        );
-    }
+    // Use an IndexedStack to switch between widgets without rebuilding them.
+    // This preserves the state of each screen, including scroll position and
+    // the state of the PageView controllers within the FrontOfficeScreen.
+    return IndexedStack(
+      index: _selectedIndex,
+      children: List.generate(destinations.length, (index) {
+        final label = destinations[index]['label'];
+        if (label == 'Front Office') return _mainContentScreens[index];
+        // For other screens, we now build them with context.
+        return _buildPlaceholderScreen(context, label);
+      }),
+    );
   }
 
   Widget _buildDashboardHome(ThemeData theme) {
@@ -261,7 +303,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               SizedBox(
                 height: 400, // Height of the chart cards
                 child: PageView(
-                  controller: PageController(viewportFraction: 0.9),
+                  controller: _attendancePageController,
                   onPageChanged: (index) {
                     setState(() {
                       _attendanceChartIndex = index;
