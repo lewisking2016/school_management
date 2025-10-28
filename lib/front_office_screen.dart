@@ -184,6 +184,70 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
     ]);
   }
 
+  void _editEnquiry(DocumentSnapshot enquiryDoc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: _AddAdmissionEnquiryForm(enquiryDoc: enquiryDoc),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteEnquiry(String docId, String studentName) async {
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: Text(
+          'Are you sure you want to delete the enquiry for "$studentName"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('admission_enquiries')
+            .doc(docId)
+            .delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Enquiry record deleted successfully.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting enquiry: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -205,10 +269,6 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
             }
 
             final docs = snapshot.data!.docs;
-
-            if (docs.isEmpty) {
-              return const Center(child: Text('No admission enquiries found.'));
-            }
 
             // Calculate summary data from the live snapshot
             final int totalEnquiries = docs.length;
@@ -271,87 +331,90 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
                   ),
                   const SizedBox(height: 16),
                   // Enquiry List/Table
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text('Enquiry No.')),
-                          DataColumn(label: Text('Student Name')),
-                          DataColumn(label: Text('Father\'s Name')),
-                          DataColumn(label: Text('Father\'s Phone')),
-                          DataColumn(label: Text('Enquiry Date')),
-                          DataColumn(label: Text('Status')),
-                          DataColumn(label: Text('Source')),
-                          DataColumn(label: Text('Actions')),
-                        ],
-                        rows: docs.map((doc) {
-                          final enquiry = doc.data() as Map<String, dynamic>;
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(enquiry['enquiryNo'] ?? '')),
-                              DataCell(Text(enquiry['studentName'] ?? '')),
-                              DataCell(Text(enquiry['fatherName'] ?? '')),
-                              DataCell(Text(enquiry['fatherPhone'] ?? '')),
-                              DataCell(Text(enquiry['enquiryDate'] ?? '')),
-                              DataCell(
-                                Chip(
-                                  label: Text(enquiry['status'] ?? 'N/A'),
-                                  backgroundColor: _getStatusColor(
-                                    enquiry['status'] ?? '',
-                                  ),
-                                  labelStyle: const TextStyle(
-                                    color: Colors.white,
+                  if (docs.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48.0),
+                        child: Text('No admission enquiries found.'),
+                      ),
+                    )
+                  else
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('Enquiry No.')),
+                            DataColumn(label: Text('Student Name')),
+                            DataColumn(label: Text('Father\'s Name')),
+                            DataColumn(label: Text('Father\'s Phone')),
+                            DataColumn(label: Text('Enquiry Date')),
+                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text('Source')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: docs.map((doc) {
+                            final enquiry = doc.data() as Map<String, dynamic>;
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(enquiry['enquiryNo'] ?? '')),
+                                DataCell(Text(enquiry['studentName'] ?? '')),
+                                DataCell(Text(enquiry['fatherName'] ?? '')),
+                                DataCell(Text(enquiry['fatherPhone'] ?? '')),
+                                DataCell(Text(enquiry['enquiryDate'] ?? '')),
+                                DataCell(
+                                  Chip(
+                                    label: Text(
+                                      enquiry['status'] ?? 'N/A',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    backgroundColor: _getStatusColor(
+                                      enquiry['status'] ?? '',
+                                    ),
                                   ),
                                 ),
-                              ),
-                              DataCell(Text(enquiry['source'] ?? '')),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, size: 20),
-                                      onPressed: () {
-                                        // todo: Implement edit functionality
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Edit ${enquiry['enquiryNo']}',
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, size: 20),
-                                      onPressed: () {
-                                        // todo: Implement delete functionality
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Delete ${enquiry['enquiryNo']}',
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
+                                DataCell(Text(enquiry['source'] ?? '')),
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          size: 20,
+                                          color: Colors.blue,
+                                        ),
+                                        onPressed: () {
+                                          _editEnquiry(doc);
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          size: 20,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () {
+                                          _deleteEnquiry(
+                                            doc.id,
+                                            enquiry['studentName'] ?? '',
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
+                              ],
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 24),
                   // Add New Enquiry Button - Moved here from FAB
                   SizedBox(
@@ -496,10 +559,6 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
 
             final docs = snapshot.data!.docs;
 
-            if (docs.isEmpty) {
-              return const Center(child: Text('No visitors found.'));
-            }
-
             // Calculate summary data from the live snapshot
             final int totalVisitors = docs.length;
             final int currentlyIn = docs
@@ -559,77 +618,102 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
                   ),
                   const SizedBox(height: 16),
                   // Visitor List/Table
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text('Visitor ID')),
-                          DataColumn(label: Text('Name')),
-                          DataColumn(label: Text('Company')),
-                          DataColumn(label: Text('Purpose')),
-                          DataColumn(label: Text('Person to Meet')),
-                          DataColumn(label: Text('Transport')),
-                          DataColumn(label: Text('Vehicle No.')),
-                          DataColumn(label: Text('Check In')),
-                          DataColumn(label: Text('Check Out')),
-                          DataColumn(label: Text('Status')),
-                          DataColumn(label: Text('Actions')),
-                        ],
-                        rows: docs.map((doc) {
-                          final visitor = doc.data() as Map<String, dynamic>;
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(visitor['visitorId'] ?? '')),
-                              DataCell(Text(visitor['name'] ?? '')),
-                              DataCell(Text(visitor['company'] ?? '')),
-                              DataCell(Text(visitor['purpose'] ?? '')),
-                              DataCell(Text(visitor['personToMeet'] ?? '')),
-                              DataCell(Text(visitor['transportMode'] ?? 'N/A')),
-                              DataCell(Text(visitor['vehicleNumber'] ?? 'N/A')),
-                              DataCell(Text(visitor['checkInTime'] ?? '')),
-                              DataCell(
-                                Text(visitor['checkOutTime'] ?? ''),
-                              ), // Assuming this field might exist
-                              DataCell(
-                                Chip(
-                                  label: Text(visitor['status'] ?? 'N/A'),
-                                  backgroundColor: _getStatusColor(
-                                    visitor['status'] ?? '',
-                                  ),
-                                  labelStyle: const TextStyle(
-                                    color: Colors.white,
+                  if (docs.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48.0),
+                        child: Text('No visitors found.'),
+                      ),
+                    )
+                  else
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('Visitor ID')),
+                            DataColumn(label: Text('Name')),
+                            DataColumn(label: Text('Company')),
+                            DataColumn(label: Text('Purpose')),
+                            DataColumn(label: Text('Person to Meet')),
+                            DataColumn(label: Text('Transport')),
+                            DataColumn(label: Text('Vehicle No.')),
+                            DataColumn(label: Text('Check In')),
+                            DataColumn(label: Text('Check Out')),
+                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: docs.map((doc) {
+                            final visitor = doc.data() as Map<String, dynamic>;
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(visitor['visitorId'] ?? '')),
+                                DataCell(Text(visitor['name'] ?? '')),
+                                DataCell(Text(visitor['company'] ?? '')),
+                                DataCell(Text(visitor['purpose'] ?? '')),
+                                DataCell(Text(visitor['personToMeet'] ?? '')),
+                                DataCell(
+                                  Text(visitor['transportMode'] ?? 'N/A'),
+                                ),
+                                DataCell(
+                                  Text(visitor['vehicleNumber'] ?? 'N/A'),
+                                ),
+                                DataCell(Text(visitor['checkInTime'] ?? '')),
+                                DataCell(
+                                  Text(visitor['checkOutTime'] ?? ''),
+                                ), // Assuming this field might exist
+                                DataCell(
+                                  Chip(
+                                    label: Text(
+                                      visitor['status'] ?? 'N/A',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    backgroundColor: _getStatusColor(
+                                      visitor['status'] ?? '',
+                                    ),
                                   ),
                                 ),
-                              ),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, size: 20),
-                                      onPressed: () {
-                                        // todo: Implement edit functionality
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, size: 20),
-                                      onPressed: () {
-                                        // todo: Implement delete functionality
-                                      },
-                                    ),
-                                  ],
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          size: 20,
+                                          color: Colors.blue,
+                                        ),
+                                        onPressed: () {
+                                          _editVisitor(doc);
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          size: 20,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () {
+                                          _deleteVisitor(
+                                            doc.id,
+                                            visitor['name'] ?? '',
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
+                              ],
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 24),
                   // Check In New Visitor Button - Moved here from FAB
                   SizedBox(
@@ -709,14 +793,67 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Checked In':
-        return Colors.green;
-      case 'Checked Out':
-        return Colors.orange;
-      default:
-        return Colors.grey;
+  void _editVisitor(DocumentSnapshot visitorDoc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: _AddVisitorForm(visitorDoc: visitorDoc),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteVisitor(String docId, String visitorName) async {
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: Text(
+          'Are you sure you want to delete the record for "$visitorName"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('visitors')
+            .doc(docId)
+            .delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Visitor record deleted successfully.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting visitor: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 }
@@ -724,11 +861,13 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
 Color _getStatusColor(String status) {
   switch (status) {
     case 'New':
-      return Colors.orange;
+    case 'Checked In':
+      return Colors.green;
     case 'Contacted':
       return Colors.blue;
     case 'Enrolled':
-      return Colors.green;
+    case 'Checked Out':
+      return Colors.orange;
     default:
       return Colors.grey;
   }
@@ -736,7 +875,8 @@ Color _getStatusColor(String status) {
 
 // New widget for the Add Admission Enquiry Form
 class _AddAdmissionEnquiryForm extends StatefulWidget {
-  const _AddAdmissionEnquiryForm();
+  final DocumentSnapshot? enquiryDoc;
+  const _AddAdmissionEnquiryForm({this.enquiryDoc});
 
   @override
   State<_AddAdmissionEnquiryForm> createState() =>
@@ -767,6 +907,23 @@ class _AddAdmissionEnquiryFormState extends State<_AddAdmissionEnquiryForm> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.enquiryDoc != null) {
+      final data = widget.enquiryDoc!.data() as Map<String, dynamic>;
+      _studentNameController.text = data['studentName'] ?? '';
+      _fatherNameController.text = data['fatherName'] ?? '';
+      _motherNameController.text = data['motherName'] ?? '';
+      _phoneController.text = data['fatherPhone'] ?? '';
+      _emailController.text = data['email'] ?? '';
+      _notesController.text = data['notes'] ?? '';
+      _selectedSession = data['academicSession'];
+      _selectedClass = data['classSought'];
+      _selectedSource = data['source'];
+    }
+  }
+
+  @override
   void dispose() {
     _studentNameController.dispose();
     _fatherNameController.dispose();
@@ -779,29 +936,49 @@ class _AddAdmissionEnquiryFormState extends State<_AddAdmissionEnquiryForm> {
 
   Future<void> _saveEnquiry() async {
     if (_formKey.currentState!.validate()) {
+      final enquiryData = {
+        'studentName': _studentNameController.text,
+        'fatherName': _fatherNameController.text,
+        'motherName': _motherNameController.text,
+        'fatherPhone': _phoneController.text,
+        'email': _emailController.text,
+        'classSought': _selectedClass,
+        'academicSession': _selectedSession,
+        'source': _selectedSource,
+        'notes': _notesController.text,
+      };
+
       try {
         final firestore = FirebaseFirestore.instance;
-        const uuid = Uuid();
-        final enquiryNo = 'ENQ-${uuid.v4().substring(0, 6).toUpperCase()}';
+        String successMessage;
 
-        await firestore.collection('admission_enquiries').add({
-          'enquiryNo': enquiryNo,
-          'studentName': _studentNameController.text,
-          'fatherName': _fatherNameController.text,
-          'motherName': _motherNameController.text,
-          'fatherPhone': _phoneController.text,
-          'email': _emailController.text,
-          'classSought': _selectedClass,
-          'academicSession': _selectedSession,
-          'source': _selectedSource,
-          'notes': _notesController.text,
-          'enquiryDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          'status': 'New',
-        });
+        if (widget.enquiryDoc == null) {
+          // Creating a new enquiry
+          const uuid = Uuid();
+          final enquiryNo = 'ENQ-${uuid.v4().substring(0, 6).toUpperCase()}';
+          enquiryData['enquiryNo'] = enquiryNo;
+          enquiryData['enquiryDate'] = DateFormat(
+            'yyyy-MM-dd',
+          ).format(DateTime.now());
+          enquiryData['status'] = 'New';
+
+          await firestore.collection('admission_enquiries').add(enquiryData);
+          successMessage = 'Enquiry saved successfully!';
+        } else {
+          // Updating an existing enquiry
+          await firestore
+              .collection('admission_enquiries')
+              .doc(widget.enquiryDoc!.id)
+              .update(enquiryData);
+          successMessage = 'Enquiry updated successfully!';
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Enquiry saved successfully!')),
+            SnackBar(
+              content: Text(successMessage),
+              backgroundColor: Colors.green,
+            ),
           );
           Navigator.of(context).pop(true); // Pop and indicate success
         }
@@ -827,8 +1004,12 @@ class _AddAdmissionEnquiryFormState extends State<_AddAdmissionEnquiryForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'New Admission Enquiry',
-                style: Theme.of(context).textTheme.headlineSmall,
+                widget.enquiryDoc == null
+                    ? 'New Admission Enquiry'
+                    : 'Edit Admission Enquiry',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
               TextFormField(
@@ -916,7 +1097,11 @@ class _AddAdmissionEnquiryFormState extends State<_AddAdmissionEnquiryForm> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _saveEnquiry,
-                    child: const Text('Save Enquiry'),
+                    child: Text(
+                      widget.enquiryDoc == null
+                          ? 'Save Enquiry'
+                          : 'Save Changes',
+                    ),
                   ),
                 ],
               ),
@@ -930,7 +1115,8 @@ class _AddAdmissionEnquiryFormState extends State<_AddAdmissionEnquiryForm> {
 
 // New widget for the Add Visitor Form
 class _AddVisitorForm extends StatefulWidget {
-  const _AddVisitorForm();
+  final DocumentSnapshot? visitorDoc;
+  const _AddVisitorForm({this.visitorDoc});
 
   @override
   State<_AddVisitorForm> createState() => _AddVisitorFormState();
@@ -975,6 +1161,27 @@ class _AddVisitorFormState extends State<_AddVisitorForm> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.visitorDoc != null) {
+      final data = widget.visitorDoc!.data() as Map<String, dynamic>;
+      _visitorNameController.text = data['name'] ?? '';
+      _phoneController.text = data['phone'] ?? '';
+      _emailController.text = data['email'] ?? '';
+      _companyController.text = data['company'] ?? '';
+      _personToMeetController.text = data['personToMeet'] ?? '';
+      _vehicleNumberController.text = data['vehicleNumber'] ?? '';
+      _remarksController.text = data['remarks'] ?? '';
+      _selectedPurpose = data['purpose'];
+      _selectedDepartment = data['department'];
+      // Use a post-frame callback to ensure the state is set after the build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateVehicleNumberState(data['transportMode']);
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _visitorNameController.dispose();
     _phoneController.dispose();
@@ -999,37 +1206,54 @@ class _AddVisitorFormState extends State<_AddVisitorForm> {
 
   Future<void> _checkInVisitor() async {
     if (_formKey.currentState!.validate()) {
+      final visitorData = {
+        'name': _visitorNameController.text,
+        'phone': _phoneController.text,
+        'email': _emailController.text,
+        'company': _companyController.text,
+        'purpose': _selectedPurpose,
+        'personToMeet': _personToMeetController.text,
+        'department': _selectedDepartment,
+        'transportMode': _selectedTransportMode,
+        'vehicleNumber': _vehicleNumberController.text,
+        'remarks': _remarksController.text,
+      };
+
       try {
         final firestore = FirebaseFirestore.instance;
-        const uuid = Uuid();
-        final visitorId = 'VIS-${uuid.v4().substring(0, 6).toUpperCase()}';
+        String successMessage;
 
-        await firestore.collection('visitors').add({
-          'visitorId': visitorId,
-          'name': _visitorNameController.text,
-          'phone': _phoneController.text,
-          'email': _emailController.text,
-          'company': _companyController.text,
-          'purpose': _selectedPurpose,
-          'personToMeet': _personToMeetController.text,
-          'department': _selectedDepartment,
-          'transportMode': _selectedTransportMode,
-          'vehicleNumber': _vehicleNumberController.text,
-          'remarks': _remarksController.text,
-          'checkInTime': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
-          'status': 'Checked In',
-        });
+        if (widget.visitorDoc == null) {
+          // Creating a new visitor
+          const uuid = Uuid();
+          final visitorId = 'VIS-${uuid.v4().substring(0, 6).toUpperCase()}';
+          visitorData['visitorId'] = visitorId;
+          visitorData['checkInTime'] = DateFormat(
+            'yyyy-MM-dd HH:mm',
+          ).format(DateTime.now());
+          visitorData['status'] = 'Checked In';
 
-        // ignore: use_build_context_synchronously
+          await firestore.collection('visitors').add(visitorData);
+          successMessage = 'Visitor checked in successfully!';
+        } else {
+          // Updating an existing visitor
+          await firestore
+              .collection('visitors')
+              .doc(widget.visitorDoc!.id)
+              .update(visitorData);
+          successMessage = 'Visitor record updated successfully!';
+        }
+
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Visitor checked in successfully!'),
+          SnackBar(
+            content: Text(successMessage),
             backgroundColor: Colors.green,
           ),
         );
-        // ignore: empty_catches
-      } catch (e) {}
-      // ignore: use_build_context_synchronously
+      } catch (e) {
+        debugPrint('Error saving visitor: $e');
+      }
       Navigator.of(context).pop(true);
     }
   }
@@ -1046,8 +1270,12 @@ class _AddVisitorFormState extends State<_AddVisitorForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Visitor Check In',
-                style: Theme.of(context).textTheme.headlineSmall,
+                widget.visitorDoc == null
+                    ? 'Visitor Check In'
+                    : 'Edit Visitor Record',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
               TextFormField(
@@ -1150,7 +1378,11 @@ class _AddVisitorFormState extends State<_AddVisitorForm> {
                   ElevatedButton.icon(
                     onPressed: _checkInVisitor,
                     icon: const Icon(Icons.login),
-                    label: const Text('Check In Visitor'),
+                    label: Text(
+                      widget.visitorDoc == null
+                          ? 'Check In Visitor'
+                          : 'Save Changes',
+                    ),
                   ),
                 ],
               ),
