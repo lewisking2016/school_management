@@ -185,229 +185,218 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
     ]);
   }
 
-  // Dummy data for enquiries
-  final List<Map<String, String>> _enquiries = [
-    {
-      'enquiryNo': 'ENQ001',
-      'studentName': 'Alice Smithrowe',
-      'fatherName': 'John Cina',
-      'fatherPhone': '123-456-7890',
-      'enquiryDate': '2023-10-20',
-      'status': 'New',
-      'source': 'Website',
-    },
-    {
-      'enquiryNo': 'ENQ002',
-      'studentName': 'Bob Kinaga',
-      'fatherName': 'David Kinaga',
-      'fatherPhone': '098-765-4321',
-      'enquiryDate': '2023-10-18',
-      'status': 'Contacted',
-      'source': 'Referral',
-    },
-    {
-      'enquiryNo': 'ENQ003',
-      'studentName': 'Lewis Ndungu',
-      'fatherName': 'Robert Ndungu',
-      'fatherPhone': '111-222-3333',
-      'enquiryDate': '2023-10-15',
-      'status': 'Enrolled',
-      'source': 'Walk-in',
-    },
-    {
-      'enquiryNo': 'ENQ004',
-      'studentName': 'Martin Sikuku',
-      'fatherName': 'Steve Kimani',
-      'fatherPhone': '444-555-6666',
-      'enquiryDate': '2023-10-10',
-      'status': 'New',
-      'source': 'Advertisement',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final int totalEnquiries = _enquiries.length;
-    final int newEnquiries = _enquiries
-        .where((e) => e['status'] == 'New')
-        .length;
-    final int enrolledEnquiries = _enquiries
-        .where((e) => e['status'] == 'Enrolled')
-        .length;
-    final int contactedEnquiries = _enquiries
-        .where((e) => e['status'] == 'Contacted')
-        .length;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        // The SingleChildScrollView should be the body of the Scaffold
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Admission Enquiry Overview',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Summary Cards
-            Column(
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('admission_enquiries')
+            .orderBy('enquiryDate', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Something went wrong'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final docs = snapshot.data!.docs;
+
+          if (docs.isEmpty) {
+            return const Center(child: Text('No admission enquiries found.'));
+          }
+
+          // Calculate summary data from the live snapshot
+          final int totalEnquiries = docs.length;
+          final int newEnquiries = docs
+              .where((d) => (d.data() as Map)['status'] == 'New')
+              .length;
+          final int enrolledEnquiries = docs
+              .where((d) => (d.data() as Map)['status'] == 'Enrolled')
+              .length;
+          final int contactedEnquiries = docs
+              .where((d) => (d.data() as Map)['status'] == 'Contacted')
+              .length;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 140, // Give the PageView a fixed height
-                  child: PageView.builder(
-                    controller: PageController(viewportFraction: 0.85),
-                    itemCount: _summaryData.length,
-                    onPageChanged: (index) {
-                      setState(() => _summaryCardIndex = index);
-                    },
-                    itemBuilder: (context, index) {
-                      final item = _summaryData[index];
-                      final values = [
-                        totalEnquiries,
-                        newEnquiries,
-                        enrolledEnquiries,
-                        contactedEnquiries,
-                      ];
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: _buildSummaryCard(
-                          context,
-                          item['title'],
-                          values[index].toString(),
-                          item['icon'],
-                          item['color'],
-                        ),
-                      );
-                    },
+                Text(
+                  'Admission Enquiry Overview',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 12),
-                _buildPageIndicator(_summaryData.length, _summaryCardIndex),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Enquiry Records',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Enquiry List/Table
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Enquiry No.')),
-                    DataColumn(label: Text('Student Name')),
-                    DataColumn(label: Text('Father\'s Name')),
-                    DataColumn(label: Text('Father\'s Phone')),
-                    DataColumn(label: Text('Enquiry Date')),
-                    DataColumn(label: Text('Status')),
-                    DataColumn(label: Text('Source')),
-                    DataColumn(label: Text('Actions')),
-                  ],
-                  rows: _enquiries.map((enquiry) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(enquiry['enquiryNo']!)),
-                        DataCell(Text(enquiry['studentName']!)),
-                        DataCell(Text(enquiry['fatherName']!)),
-                        DataCell(Text(enquiry['fatherPhone']!)),
-                        DataCell(Text(enquiry['enquiryDate']!)),
-                        DataCell(
-                          Chip(
-                            label: Text(enquiry['status']!),
-                            backgroundColor: _getStatusColor(
-                              enquiry['status']!,
+                const SizedBox(height: 24),
+                // Summary Cards
+                Column(
+                  children: [
+                    SizedBox(
+                      height: 140, // Give the PageView a fixed height
+                      child: PageView.builder(
+                        controller: PageController(viewportFraction: 0.85),
+                        itemCount: _summaryData.length,
+                        onPageChanged: (index) {
+                          setState(() => _summaryCardIndex = index);
+                        },
+                        itemBuilder: (context, index) {
+                          final item = _summaryData[index];
+                          final values = [
+                            totalEnquiries,
+                            newEnquiries,
+                            enrolledEnquiries,
+                            contactedEnquiries,
+                          ];
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: _buildSummaryCard(
+                              context,
+                              item['title'],
+                              values[index].toString(),
+                              item['icon'],
+                              item['color'],
                             ),
-                            labelStyle: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        DataCell(Text(enquiry['source']!)),
-                        DataCell(
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () {
-                                  // todo: Implement edit functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Edit ${enquiry['enquiryNo']}',
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, size: 20),
-                                onPressed: () {
-                                  // todo: Implement delete functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Delete ${enquiry['enquiryNo']}',
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildPageIndicator(_summaryData.length, _summaryCardIndex),
+                  ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Add New Enquiry Button - Moved here from FAB
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                        ),
-                        child: const _AddAdmissionEnquiryForm(),
-                      );
-                    },
-                  ).then((value) {
-                    if (value == true) {
-                      // A crude way to refresh data. A better way would be to use a State Management solution
-                      // or listen to Firestore snapshots directly in the _AdmissionEnquiryTab.
-                    }
-                  });
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Add New Enquiry'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                const SizedBox(height: 32),
+                Text(
+                  'Enquiry Records',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Enquiry List/Table
+                Card(
+                  elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Enquiry No.')),
+                        DataColumn(label: Text('Student Name')),
+                        DataColumn(label: Text('Father\'s Name')),
+                        DataColumn(label: Text('Father\'s Phone')),
+                        DataColumn(label: Text('Enquiry Date')),
+                        DataColumn(label: Text('Status')),
+                        DataColumn(label: Text('Source')),
+                        DataColumn(label: Text('Actions')),
+                      ],
+                      rows: docs.map((doc) {
+                        final enquiry = doc.data() as Map<String, dynamic>;
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(enquiry['enquiryNo'] ?? '')),
+                            DataCell(Text(enquiry['studentName'] ?? '')),
+                            DataCell(Text(enquiry['fatherName'] ?? '')),
+                            DataCell(Text(enquiry['fatherPhone'] ?? '')),
+                            DataCell(Text(enquiry['enquiryDate'] ?? '')),
+                            DataCell(
+                              Chip(
+                                label: Text(enquiry['status'] ?? 'N/A'),
+                                backgroundColor: _getStatusColor(
+                                  enquiry['status'] ?? '',
+                                ),
+                                labelStyle: const TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            DataCell(Text(enquiry['source'] ?? '')),
+                            DataCell(
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, size: 20),
+                                    onPressed: () {
+                                      // todo: Implement edit functionality
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Edit ${enquiry['enquiryNo']}',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, size: 20),
+                                    onPressed: () {
+                                      // todo: Implement delete functionality
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Delete ${enquiry['enquiryNo']}',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
+                // Add New Enquiry Button - Moved here from FAB
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (context) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: const _AddAdmissionEnquiryForm(),
+                          );
+                        },
+                      ).then((value) {
+                        if (value == true) {
+                          // Data is refreshed automatically by StreamBuilder
+                        }
+                      });
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add New Enquiry'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -491,7 +480,6 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
 // New widget for the Visitor Book Tab
 class _VisitorBookTab extends StatefulWidget {
   const _VisitorBookTab();
-
   @override
   State<_VisitorBookTab> createState() => _VisitorBookTabState();
 }
