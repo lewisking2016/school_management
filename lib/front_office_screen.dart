@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 class FrontOfficeScreen extends StatefulWidget {
   const FrontOfficeScreen({super.key});
@@ -375,11 +378,23 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Add New Enquiry form coming soon!'),
-                    ),
-                  );
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).viewInsets.bottom,
+                        ),
+                        child: const _AddAdmissionEnquiryForm(),
+                      );
+                    },
+                  ).then((value) {
+                    if (value == true) {
+                      // A crude way to refresh data. A better way would be to use a State Management solution
+                      // or listen to Firestore snapshots directly in the _AdmissionEnquiryTab.
+                    }
+                  });
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Add New Enquiry'),
@@ -785,5 +800,199 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
       default:
         return Colors.grey;
     }
+  }
+}
+
+// New widget for the Add Admission Enquiry Form
+class _AddAdmissionEnquiryForm extends StatefulWidget {
+  const _AddAdmissionEnquiryForm();
+
+  @override
+  State<_AddAdmissionEnquiryForm> createState() =>
+      _AddAdmissionEnquiryFormState();
+}
+
+class _AddAdmissionEnquiryFormState extends State<_AddAdmissionEnquiryForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _studentNameController = TextEditingController();
+  final _fatherNameController = TextEditingController();
+  final _motherNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  String? _selectedSession;
+  String? _selectedClass;
+  String? _selectedSource;
+
+  // Dummy data for dropdowns
+  final List<String> _academicSessions = ['2024-2025', '2025-2026'];
+  final List<String> _classes = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'];
+  final List<String> _sources = [
+    'Website',
+    'Referral',
+    'Walk-in',
+    'Advertisement',
+  ];
+
+  @override
+  void dispose() {
+    _studentNameController.dispose();
+    _fatherNameController.dispose();
+    _motherNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveEnquiry() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        final firestore = FirebaseFirestore.instance;
+        const uuid = Uuid();
+        final enquiryNo = 'ENQ-${uuid.v4().substring(0, 6).toUpperCase()}';
+
+        await firestore.collection('admission_enquiries').add({
+          'enquiryNo': enquiryNo,
+          'studentName': _studentNameController.text,
+          'fatherName': _fatherNameController.text,
+          'motherName': _motherNameController.text,
+          'fatherPhone': _phoneController.text,
+          'email': _emailController.text,
+          'classSought': _selectedClass,
+          'academicSession': _selectedSession,
+          'source': _selectedSource,
+          'notes': _notesController.text,
+          'enquiryDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          'status': 'New',
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Enquiry saved successfully!')),
+          );
+          Navigator.of(context).pop(true); // Pop and indicate success
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to save enquiry: $e')));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'New Admission Enquiry',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _studentNameController,
+                decoration: const InputDecoration(labelText: 'Student Name*'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Student name is required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _fatherNameController,
+                decoration: const InputDecoration(labelText: 'Father Name*'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Father name is required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _motherNameController,
+                decoration: const InputDecoration(labelText: 'Mother Name'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(labelText: 'Phone Number*'),
+                keyboardType: TextInputType.phone,
+                validator: (value) =>
+                    value!.isEmpty ? 'Phone number is required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedSession,
+                decoration: const InputDecoration(
+                  labelText: 'Academic Session*',
+                ),
+                items: _academicSessions
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedSession = value),
+                validator: (value) =>
+                    value == null ? 'Please select a session' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedClass,
+                decoration: const InputDecoration(labelText: 'Class Sought*'),
+                items: _classes
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedClass = value),
+                validator: (value) =>
+                    value == null ? 'Please select a class' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedSource,
+                decoration: const InputDecoration(labelText: 'Enquiry Source'),
+                items: _sources
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedSource = value),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes',
+                  hintText: 'Any specific requirements or notes...',
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _saveEnquiry,
+                    child: const Text('Save Enquiry'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

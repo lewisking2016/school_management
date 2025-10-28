@@ -177,10 +177,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
       // ignore: unused_local_variable
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       if (!mounted) return;
       await showDialog(
@@ -198,10 +196,12 @@ class _RegisterScreenState extends State<RegisterScreen>
       // await userCredential.user?.updateDisplayName('New User');
 
       // Navigate after the dialog is closed.
-      if (mounted) Navigator.of(context).pushReplacementNamed('/login');
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted) hideLoadingOverlay(context);
-      String message = '';
+      String message;
       if (e.code == 'email-already-in-use') {
         message = 'This email is already registered.';
       } else if (e.code == 'weak-password') {
@@ -210,16 +210,18 @@ class _RegisterScreenState extends State<RegisterScreen>
         message = e.message ?? 'An error occurred.';
       }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ $message — try again')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('❌ $message — try again')));
+      }
     } catch (e) {
       if (mounted) hideLoadingOverlay(context);
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Unexpected error — try again')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Unexpected error — try again')),
+        );
+      }
     }
   }
 
@@ -384,11 +386,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
+                        ),
                       ),
                     ),
                   ),
-                  ),
-            ]);
+                ],
+              );
             },
           ),
         ),

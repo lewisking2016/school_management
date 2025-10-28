@@ -92,7 +92,9 @@ class SocialLoginButtons extends StatelessWidget {
 
       final User? user = userCredential.user;
 
-      if (context.mounted && user != null) {
+      if (!context.mounted) return;
+
+      if (user != null) {
         hideLoadingOverlay(context);
         Navigator.of(context).pushReplacementNamed('/dashboard');
         ScaffoldMessenger.of(context).showSnackBar(
