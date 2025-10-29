@@ -17,6 +17,10 @@ class SocialLoginButtons extends StatelessWidget {
         scopes: ['email'],
       );
 
+      // Disconnect from any previous Google session to force account selection.
+      // This is a stronger way to ensure the user is prompted to choose an account.
+      await googleSignIn.disconnect();
+
       // 2. Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
@@ -77,6 +81,10 @@ class SocialLoginButtons extends StatelessWidget {
       provider.setCustomParameters({
         'tenant': 'e4e32b55-027c-4d94-986b-1f2a460f295e',
       });
+
+      // Always prompt for account selection by signing out first.
+      // This clears any previously cached Microsoft session.
+      await FirebaseAuth.instance.signOut();
 
       // 3. Sign in using the correct method for the platform (web vs. mobile)
       final UserCredential userCredential;

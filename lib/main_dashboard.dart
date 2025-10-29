@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:school_management/front_office_screen.dart';
 
@@ -88,8 +89,13 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   Future<void> _logout() async {
     // Capture the navigator before the async gap.
     final navigator = Navigator.of(context);
+    // Sign out from all providers.
+    // This ensures that the next time a user signs in, they are prompted
+    // to select an account instead of being automatically signed in.
     await FirebaseAuth.instance.signOut();
-    // Navigate back to login and remove all previous routes
+    await GoogleSignIn().signOut();
+
+    // Navigate back to login and remove all previous routes.
     navigator.pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
