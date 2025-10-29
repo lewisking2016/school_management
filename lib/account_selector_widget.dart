@@ -31,7 +31,10 @@ class _AccountSelectorWidgetState extends State<AccountSelectorWidget> {
         providerName: 'Google',
       );
 
-      if (selection == 'add_new') {
+      if (selection is SavedAccount) {
+        // User selected a previously saved account.
+        await _signInWithGoogle(loginHint: selection.email);
+      } else if (selection == 'add_new') {
         await _signInWithGoogle(forceNew: true);
       }
     } else {
@@ -40,13 +43,17 @@ class _AccountSelectorWidgetState extends State<AccountSelectorWidget> {
   }
 
   /// Handles the Google Sign-In process.
-  Future<void> _signInWithGoogle({bool forceNew = false}) async {
+  Future<void> _signInWithGoogle({
+    bool forceNew = false,
+    String? loginHint,
+  }) async {
     showLoadingOverlay(context, text: 'Connecting to Google...');
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
         clientId:
             '657011371867-eq0u90690r0vuna34lvqkd39i4netflc.apps.googleusercontent.com',
         scopes: ['email'],
+        loginHint: loginHint,
       );
 
       if (forceNew) {
@@ -118,7 +125,10 @@ class _AccountSelectorWidgetState extends State<AccountSelectorWidget> {
         providerName: 'Microsoft',
       );
 
-      if (selection == 'add_new') {
+      if (selection is SavedAccount) {
+        // User selected a previously saved account.
+        await _signInWithMicrosoft(loginHint: selection.email);
+      } else if (selection == 'add_new') {
         await _signInWithMicrosoft(forceNew: true);
       }
     } else {
@@ -127,12 +137,16 @@ class _AccountSelectorWidgetState extends State<AccountSelectorWidget> {
   }
 
   /// Handles the Microsoft Sign-In process.
-  Future<void> _signInWithMicrosoft({bool forceNew = false}) async {
+  Future<void> _signInWithMicrosoft({
+    bool forceNew = false,
+    String? loginHint,
+  }) async {
     showLoadingOverlay(context, text: 'Connecting to Microsoft...');
     try {
       final provider = MicrosoftAuthProvider();
       provider.setCustomParameters({
         'tenant': 'e4e32b55-027c-4d94-986b-1f2a460f295e',
+        if (loginHint != null) 'login_hint': loginHint,
       });
 
       if (forceNew) {
