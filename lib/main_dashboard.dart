@@ -300,8 +300,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           // Swipeable attendance charts with page indicators
           Column(
             children: [
-              SizedBox(
-                height: 400, // Height of the chart cards
+              AspectRatio(
+                aspectRatio: 1.2, // Use aspect ratio for responsiveness
                 child: PageView(
                   controller: _attendancePageController,
                   onPageChanged: (index) {
@@ -472,8 +472,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       ),
     ];
 
-    return SizedBox(
-      height: 130,
+    return AspectRatio(
+      aspectRatio: 16 / 6, // Responsive aspect ratio
       child: PageView.builder(
         controller: PageController(
           viewportFraction: 0.9,
@@ -501,8 +501,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     Color? cardAccentColor,
     Color? chartBarColor,
   }) {
-    return SizedBox(
-      height: 400, // This height is now controlled by the parent SizedBox
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
