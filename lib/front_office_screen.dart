@@ -299,8 +299,8 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 200, // Max width for each item
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                           childAspectRatio: 0.9,
@@ -586,8 +586,8 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 200, // Max width for each item
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                           childAspectRatio: 0.9,
