@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'social_login_buttons.dart';
+import 'account_selector_widget.dart';
 import 'loading_screen.dart';
 
 class LogInScreen extends StatefulWidget {
@@ -344,7 +344,7 @@ class _LogInScreenState extends State<LogInScreen>
                             // Social Login Buttons
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 24.0),
-                              child: SocialLoginButtons(),
+                              child: AccountSelectorWidget(),
                             ),
 
                             const Spacer(),
