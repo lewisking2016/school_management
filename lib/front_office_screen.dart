@@ -16,6 +16,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
 
   // Define the tabs for the Front Office module
   final List<Map<String, dynamic>> _tabs = [
+    {'icon': Icons.dashboard_outlined, 'label': 'Front Office Overview'},
     {'icon': Icons.person_add_alt_1_outlined, 'label': 'Admission Enquiry'},
     {'icon': Icons.book_online_outlined, 'label': 'Visitor Book'},
     {'icon': Icons.phone_in_talk_outlined, 'label': 'Phone Call Log'},
@@ -75,6 +76,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
+          const _FrontOfficeOverviewTab(), // New overview tab
           const _AdmissionEnquiryTab(), // Replaced with the new tab content
           const _VisitorBookTab(), // Replaced placeholder with the new tab content
           _buildPlaceholderTab(
@@ -149,6 +151,163 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
   }
 }
 
+// New widget for the consolidated Front Office Overview Tab
+class _FrontOfficeOverviewTab extends StatelessWidget {
+  const _FrontOfficeOverviewTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Front Office Dashboard',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Admission Enquiry Overview Section
+          _buildAdmissionEnquiryOverview(context, theme),
+
+          const SizedBox(height: 32),
+
+          // Visitor Book Overview Section
+          _buildVisitorBookOverview(context, theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdmissionEnquiryOverview(BuildContext context, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Admission Enquiry Summary',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('admission_enquiries')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs;
+            final int totalEnquiries = docs.length;
+            final int newEnquiries =
+                docs.where((d) => (d.data() as Map)['status'] == 'New').length;
+            final int enrolledEnquiries = docs
+                .where((d) => (d.data() as Map)['status'] == 'Enrolled')
+                .length;
+            final int contactedEnquiries = docs
+                .where((d) => (d.data() as Map)['status'] == 'Contacted')
+                .length;
+
+            return GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.9,
+              ),
+              children: [
+                _buildSmallSummaryCard(context, 'Total Enquiries',
+                    totalEnquiries.toString(), Icons.list_alt, Colors.blue),
+                _buildSmallSummaryCard(context, 'New Enquiries',
+                    newEnquiries.toString(), Icons.fiber_new, Colors.orange),
+                _buildSmallSummaryCard(context, 'Enrolled',
+                    enrolledEnquiries.toString(), Icons.school, Colors.green),
+                _buildSmallSummaryCard(context, 'Contacted',
+                    contactedEnquiries.toString(), Icons.phone_in_talk,
+                    Colors.purple),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVisitorBookOverview(BuildContext context, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Visitor Book Summary',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('visitors').snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs;
+            final int totalVisitors = docs.length;
+            final int currentlyIn = docs
+                .where((d) => (d.data() as Map)['status'] == 'Checked In')
+                .length;
+            final int checkedOut = docs
+                .where((d) => (d.data() as Map)['status'] == 'Checked Out')
+                .length;
+            const int securityAlerts = 0; // Placeholder
+
+            return GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.9,
+              ),
+              children: [
+                _buildSmallSummaryCard(
+                    context,
+                    'Total Visitors',
+                    totalVisitors.toString(),
+                    Icons.groups_outlined,
+                    Colors.blue),
+                _buildSmallSummaryCard(context, 'Currently In',
+                    currentlyIn.toString(), Icons.login_outlined, Colors.green),
+                _buildSmallSummaryCard(
+                    context,
+                    'Checked Out',
+                    checkedOut.toString(),
+                    Icons.logout_outlined,
+                    Colors.orange),
+                _buildSmallSummaryCard(
+                    context,
+                    'Security Alerts',
+                    securityAlerts.toString(),
+                    Icons.security_outlined,
+                    Colors.red),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
 // New widget for the Admission Enquiry Tab
 class _AdmissionEnquiryTab extends StatefulWidget {
   const _AdmissionEnquiryTab();
@@ -158,32 +317,6 @@ class _AdmissionEnquiryTab extends StatefulWidget {
 }
 
 class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
-  final List<Map<String, dynamic>> _summaryData = [];
-
-  @override
-  void initState() {
-    super.initState();
-    // Populate summary data here to avoid doing it in every build
-    _summaryData.addAll([
-      {
-        'title': 'Total Enquiries',
-        'icon': Icons.list_alt,
-        'color': Colors.blue,
-      },
-      {
-        'title': 'New Enquiries',
-        'icon': Icons.fiber_new,
-        'color': Colors.orange,
-      },
-      {'title': 'Enrolled', 'icon': Icons.school, 'color': Colors.green},
-      {
-        'title': 'Contacted',
-        'icon': Icons.phone_in_talk,
-        'color': Colors.purple,
-      },
-    ]);
-  }
-
   void _editEnquiry(DocumentSnapshot enquiryDoc) {
     showModalBottomSheet(
       context: context,
@@ -270,59 +403,11 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
 
             final docs = snapshot.data!.docs;
 
-            // Calculate summary data from the live snapshot
-            final int totalEnquiries = docs.length;
-            final int newEnquiries = docs
-                .where((d) => (d.data() as Map)['status'] == 'New')
-                .length;
-            final int enrolledEnquiries = docs
-                .where((d) => (d.data() as Map)['status'] == 'Enrolled')
-                .length;
-            final int contactedEnquiries = docs
-                .where((d) => (d.data() as Map)['status'] == 'Contacted')
-                .length;
-
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Admission Enquiry Overview',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Summary Cards
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 200, // Max width for each item
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.9,
-                        ),
-                    itemCount: _summaryData.length,
-                    itemBuilder: (context, index) {
-                      final item = _summaryData[index];
-                      final values = [
-                        totalEnquiries,
-                        newEnquiries,
-                        enrolledEnquiries,
-                        contactedEnquiries,
-                      ];
-                      return _buildSmallSummaryCard(
-                        item['title'],
-                        values[index].toString(),
-                        item['icon'],
-                        item['color'],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
                   Text(
                     'Enquiry Records',
                     style: theme.textTheme.headlineSmall?.copyWith(
@@ -458,45 +543,6 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
       ),
     );
   }
-
-  Widget _buildSmallSummaryCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // New widget for the Visitor Book Tab
@@ -507,36 +553,6 @@ class _VisitorBookTab extends StatefulWidget {
 }
 
 class _VisitorBookTabState extends State<_VisitorBookTab> {
-  final List<Map<String, dynamic>> _summaryData = [];
-
-  @override
-  void initState() {
-    super.initState();
-    // Populate summary data here
-    _summaryData.addAll([
-      {
-        'title': 'Total Visitors',
-        'icon': Icons.groups_outlined,
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Currently In',
-        'icon': Icons.login_outlined,
-        'color': Colors.green,
-      },
-      {
-        'title': 'Checked Out',
-        'icon': Icons.logout_outlined,
-        'color': Colors.orange,
-      },
-      {
-        'title': 'Security Alerts',
-        'icon': Icons.security_outlined,
-        'color': Colors.red,
-      },
-    ]);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -559,57 +575,11 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
 
             final docs = snapshot.data!.docs;
 
-            // Calculate summary data from the live snapshot
-            final int totalVisitors = docs.length;
-            final int currentlyIn = docs
-                .where((d) => (d.data() as Map)['status'] == 'Checked In')
-                .length;
-            final int checkedOut = docs
-                .where((d) => (d.data() as Map)['status'] == 'Checked Out')
-                .length;
-            const int securityAlerts = 0; // Placeholder for security alerts
-
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Visitor Book Overview',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Summary Cards
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 200, // Max width for each item
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.9,
-                        ),
-                    itemCount: _summaryData.length,
-                    itemBuilder: (context, index) {
-                      final item = _summaryData[index];
-                      final values = [
-                        totalVisitors,
-                        currentlyIn,
-                        checkedOut,
-                        securityAlerts,
-                      ];
-                      return _buildSmallSummaryCard(
-                        item['title'],
-                        values[index].toString(),
-                        item['icon'],
-                        item['color'],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
                   Text(
                     'Visitor Records',
                     style: theme.textTheme.headlineSmall?.copyWith(
@@ -754,45 +724,6 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
     );
   }
 
-  Widget _buildSmallSummaryCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _editVisitor(DocumentSnapshot visitorDoc) {
     showModalBottomSheet(
       context: context,
@@ -856,6 +787,47 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
       }
     }
   }
+}
+
+/// A reusable summary card widget.
+Widget _buildSmallSummaryCard(
+  BuildContext context,
+  String title,
+  String value,
+  IconData icon,
+  Color color,
+) {
+  final theme = Theme.of(context);
+  return Card(
+    elevation: 1,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    child: Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 24, color: color),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 Color _getStatusColor(String status) {
