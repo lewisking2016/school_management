@@ -33,33 +33,28 @@ class _AccountSelectorWidgetState extends State<AccountSelectorWidget> {
 
       if (selection is SavedAccount) {
         // User selected a previously saved account.
-        await _signInWithGoogle(loginHint: selection.email);
+        await _signInWithGoogle();
       } else if (selection == 'add_new') {
-        await _signInWithGoogle(forceNew: true);
+        await _signInWithGoogle();
       }
     } else {
-      await _signInWithGoogle(forceNew: true);
+      await _signInWithGoogle();
     }
   }
 
   /// Handles the Google Sign-In process.
-  Future<void> _signInWithGoogle({
-    bool forceNew = false,
-    String? loginHint,
-  }) async {
+  Future<void> _signInWithGoogle() async {
     showLoadingOverlay(context, text: 'Connecting to Google...');
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
         clientId:
             '657011371867-eq0u90690r0vuna34lvqkd39i4netflc.apps.googleusercontent.com',
         scopes: ['email'],
-        loginHint: loginHint,
       );
 
-      if (forceNew) {
-        // Disconnect from any previous session to force the account chooser.
-        await googleSignIn.disconnect();
-      }
+      // Always disconnect to force the account chooser popup.
+      // This ensures the user can always select which account to use.
+      await googleSignIn.disconnect();
 
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
