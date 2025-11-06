@@ -275,81 +275,141 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   }
 
   Widget _buildDashboardHome(ThemeData theme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Welcome back,',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: Colors.grey.shade600,
-            ),
-          ),
-          Text(
-            user?.displayName ?? 'User',
-            style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 32),
-          _buildShortcuts(theme),
-          const SizedBox(height: 32),
-          Text(
-            'Weekly Attendance Summary',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Swipeable attendance charts with page indicators
-          Column(
-            children: [
-              AspectRatio(
-                aspectRatio: 1.2, // Use aspect ratio for responsiveness
-                child: PageView(
-                  controller: _attendancePageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _attendanceChartIndex = index;
-                    });
-                  },
-                  children: [
-                    _buildAttendanceCard(
-                      theme,
-                      title: 'Student Attendance',
-                      data: const [245, 248, 235, 240, 250],
-                      total: 250,
-                      cardAccentColor: Colors.blue.shade700,
-                      chartBarColor: Colors.orange.shade400,
-                    ),
-                    _buildAttendanceCard(
-                      theme,
-                      title: 'Teacher Attendance',
-                      data: const [28, 30, 30, 29, 27],
-                      total: 30,
-                      cardAccentColor: Colors.orange.shade700,
-                      chartBarColor: Colors.blue.shade400,
-                    ),
-                  ],
-                ),
+    return LayoutBuilder(builder: (context, constraints) {
+      final isWide = constraints.maxWidth > 600;
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome back,',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: Colors.grey.shade600,
               ),
-              const SizedBox(height: 12),
-              _buildPageIndicator(2),
-            ],
-          ),
-          const SizedBox(height: 32),
-          // New section for Recent and Upcoming Activities
-          Column(
+            ),
+            Text(
+              user?.displayName ?? 'User',
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 32),
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Weekly Attendance Summary',
+                          style: theme.textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildAttendanceSection(theme),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quick Actions',
+                          style: theme.textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildShortcuts(theme, isWide: isWide),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildShortcuts(theme, isWide: isWide),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Weekly Attendance Summary',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAttendanceSection(theme),
+                ],
+              ),
+            const SizedBox(height: 32),
+            // New section for Recent and Upcoming Activities
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildRecentActivities(theme)),
+                  const SizedBox(width: 24),
+                  Expanded(child: _buildUpcomingActivities(theme)),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  _buildRecentActivities(theme),
+                  const SizedBox(height: 24),
+                  _buildUpcomingActivities(theme),
+                ],
+              ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildAttendanceSection(ThemeData theme) {
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1.2, // Use aspect ratio for responsiveness
+          child: PageView(
+            controller: _attendancePageController,
+            onPageChanged: (index) {
+              setState(() {
+                _attendanceChartIndex = index;
+              });
+            },
             children: [
-              _buildRecentActivities(theme),
-              const SizedBox(height: 24),
-              _buildUpcomingActivities(theme),
+              _buildAttendanceCard(
+                theme,
+                title: 'Student Attendance',
+                data: const [245, 248, 235, 240, 250],
+                total: 250,
+                cardAccentColor: Colors.blue.shade700,
+                chartBarColor: Colors.orange.shade400,
+              ),
+              _buildAttendanceCard(
+                theme,
+                title: 'Teacher Attendance',
+                data: const [28, 30, 30, 29, 27],
+                total: 30,
+                cardAccentColor: Colors.orange.shade700,
+                chartBarColor: Colors.blue.shade400,
+              ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        _buildPageIndicator(2),
+      ],
     );
   }
 
@@ -454,7 +514,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     );
   }
 
-  Widget _buildShortcuts(ThemeData theme) {
+  Widget _buildShortcuts(ThemeData theme, {bool isWide = false}) {
     final List<DashboardItem> shortcutItems = [
       DashboardItem(
         icon: Icons.assessment_outlined,
@@ -478,25 +538,42 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       ),
     ];
 
-    return AspectRatio(
-      aspectRatio: 16 / 6, // Responsive aspect ratio
-      child: PageView.builder(
-        controller: PageController(
-          viewportFraction: 0.9,
-        ), // Adjusted for better spacing
-        padEnds: false,
+    if (isWide) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 400,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 2.5,
+        ),
         itemCount: shortcutItems.length,
         itemBuilder: (context, index) {
-          final item = shortcutItems[index];
-          return Container(
-            margin: const EdgeInsets.only(
-              right: 12.0,
-            ), // Add margin between cards
-            child: DashboardCard(item: item),
-          );
+          return DashboardCard(item: shortcutItems[index]);
         },
-      ),
-    );
+      );
+    } else {
+      return AspectRatio(
+        aspectRatio: 16 / 6, // Responsive aspect ratio
+        child: PageView.builder(
+          controller: PageController(
+            viewportFraction: 0.9,
+          ), // Adjusted for better spacing
+          padEnds: false,
+          itemCount: shortcutItems.length,
+          itemBuilder: (context, index) {
+            final item = shortcutItems[index];
+            return Container(
+              margin: const EdgeInsets.only(
+                right: 12.0,
+              ), // Add margin between cards
+              child: DashboardCard(item: item),
+            );
+          },
+        ),
+      );
+    }
   }
 
   Widget _buildAttendanceCard(
