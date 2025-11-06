@@ -709,6 +709,7 @@ class _OverviewTabState extends State<_OverviewTab> {
   Widget _buildSmallSummaryCard(String title, String value, IconData icon, Color color) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
+    // ignore: unused_local_variable
     final isSmallScreen = screenWidth < 600;
 
     return SizedBox(
