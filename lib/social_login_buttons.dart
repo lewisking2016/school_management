@@ -10,43 +10,41 @@ class SocialLoginButtons extends StatelessWidget {
   Future<void> _signInWithGoogle(BuildContext context) async {
     showLoadingOverlay(context, text: 'Connecting to Google...');
     try {
-      // 1. Create GoogleSignIn instance
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId:
-            '657011371867-eq0u90690r0vuna34lvqkd39i4netflc.apps.googleusercontent.com',
-        scopes: ['email'],
-      );
+      final UserCredential userCredential;
+      if (kIsWeb) {
+        // Use signInWithPopup for web
+        final provider = GoogleAuthProvider();
+        provider.setCustomParameters({'prompt': 'select_account'});
+        userCredential = await FirebaseAuth.instance.signInWithPopup(provider);
+      } else {
+        // Use GoogleSignIn for mobile platforms
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          clientId: '657011371867-eq0u90690r0vuna34lvqkd39i4netflc.apps.googleusercontent.com',
+          scopes: ['email'],
+        );
 
-      // 2. Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-      if (googleUser == null) {
-        if (context.mounted) hideLoadingOverlay(context);
-        // User canceled sign-in
-        return;
-      }
+        if (googleUser == null) {
+          if (context.mounted) hideLoadingOverlay(context);
+          return;
+        }
 
-      // 3. Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-      // 4. Create a new credential for Firebase
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-        accessToken: googleAuth.accessToken,
-      );
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+          accessToken: googleAuth.accessToken,
+        );
 
-      // 5. Sign in to Firebase with the Google credentials
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
+        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
-      // 6. Manually update the user's profile information in Firebase
-      // This ensures the display name and photo are always up-to-date.
-      final User? user = userCredential.user;
-      if (user != null) {
-        await user.updateDisplayName(googleUser.displayName);
-        // Reload the user to get the updated profile information.
-        await user.reload();
+        // Update display name for mobile
+        final User? user = userCredential.user;
+        if (user != null) {
+          await user.updateDisplayName(googleUser.displayName);
+          await user.reload();
+        }
       }
 
       if (context.mounted) {

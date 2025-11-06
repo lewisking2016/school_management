@@ -16,6 +16,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
 
   // Define the tabs for the Front Office module
   final List<Map<String, dynamic>> _tabs = [
+    {'icon': Icons.dashboard_outlined, 'label': 'Overview'},
     {'icon': Icons.person_add_alt_1_outlined, 'label': 'Admission Enquiry'},
     {'icon': Icons.book_online_outlined, 'label': 'Visitor Book'},
     {'icon': Icons.phone_in_talk_outlined, 'label': 'Phone Call Log'},
@@ -75,6 +76,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
+          const _OverviewTab(), // New overview tab
           const _AdmissionEnquiryTab(), // Replaced with the new tab content
           const _VisitorBookTab(), // Replaced placeholder with the new tab content
           _buildPlaceholderTab(
@@ -270,66 +272,21 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
 
             final docs = snapshot.data!.docs;
 
-            // Calculate summary data from the live snapshot
-            final int totalEnquiries = docs.length;
-            final int newEnquiries = docs
-                .where((d) => (d.data() as Map)['status'] == 'New')
-                .length;
-            final int enrolledEnquiries = docs
-                .where((d) => (d.data() as Map)['status'] == 'Enrolled')
-                .length;
-            final int contactedEnquiries = docs
-                .where((d) => (d.data() as Map)['status'] == 'Contacted')
-                .length;
-
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.04,
+                vertical: MediaQuery.of(context).size.height * 0.02,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Admission Enquiry Overview',
+                    'Admission Enquiry Records',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  // Summary Cards
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.9,
-                        ),
-                    itemCount: _summaryData.length,
-                    itemBuilder: (context, index) {
-                      final item = _summaryData[index];
-                      final values = [
-                        totalEnquiries,
-                        newEnquiries,
-                        enrolledEnquiries,
-                        contactedEnquiries,
-                      ];
-                      return _buildSmallSummaryCard(
-                        item['title'],
-                        values[index].toString(),
-                        item['icon'],
-                        item['color'],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Enquiry Records',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                   // Enquiry List/Table
                   if (docs.isEmpty)
                     const Center(
@@ -347,58 +304,73 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
+                          columnSpacing: 12, // Reduced spacing
+                          horizontalMargin: 8, // Reduced margins
+                          dataRowMinHeight: 32, // Smaller row height
+                          dataRowMaxHeight: 40, // Smaller max height
+                          headingRowHeight: 36, // Smaller header height
                           columns: const [
-                            DataColumn(label: Text('Enquiry No.')),
-                            DataColumn(label: Text('Student Name')),
-                            DataColumn(label: Text('Father\'s Name')),
-                            DataColumn(label: Text('Father\'s Phone')),
-                            DataColumn(label: Text('Enquiry Date')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('Source')),
-                            DataColumn(label: Text('Actions')),
+                            DataColumn(label: Text('Enquiry No.', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Student Name', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Father\'s Name', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Phone', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Date', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Status', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Source', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Actions', style: TextStyle(fontSize: 12))),
                           ],
                           rows: docs.map((doc) {
                             final enquiry = doc.data() as Map<String, dynamic>;
                             return DataRow(
                               cells: [
-                                DataCell(Text(enquiry['enquiryNo'] ?? '')),
-                                DataCell(Text(enquiry['studentName'] ?? '')),
-                                DataCell(Text(enquiry['fatherName'] ?? '')),
-                                DataCell(Text(enquiry['fatherPhone'] ?? '')),
-                                DataCell(Text(enquiry['enquiryDate'] ?? '')),
+                                DataCell(Text(enquiry['enquiryNo'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(enquiry['studentName'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(enquiry['fatherName'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(enquiry['fatherPhone'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(enquiry['enquiryDate'] ?? '', style: const TextStyle(fontSize: 11))),
                                 DataCell(
-                                  Chip(
-                                    label: Text(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(enquiry['status'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
                                       enquiry['status'] ?? 'N/A',
                                       style: const TextStyle(
                                         color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                    ),
-                                    backgroundColor: _getStatusColor(
-                                      enquiry['status'] ?? '',
                                     ),
                                   ),
                                 ),
-                                DataCell(Text(enquiry['source'] ?? '')),
+                                DataCell(Text(enquiry['source'] ?? '', style: const TextStyle(fontSize: 11))),
                                 DataCell(
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         icon: const Icon(
                                           Icons.edit,
-                                          size: 20,
+                                          size: 16,
                                           color: Colors.blue,
                                         ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                         onPressed: () {
                                           _editEnquiry(doc);
                                         },
                                       ),
+                                      const SizedBox(width: 4),
                                       IconButton(
                                         icon: const Icon(
                                           Icons.delete,
-                                          size: 20,
+                                          size: 16,
                                           color: Colors.red,
                                         ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                         onPressed: () {
                                           _deleteEnquiry(
                                             doc.id,
@@ -415,7 +387,7 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.03),
                   // Add New Enquiry Button - Moved here from FAB
                   SizedBox(
                     width: double.infinity,
@@ -427,9 +399,7 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
                           builder: (context) {
                             return Padding(
                               padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(
-                                  context,
-                                ).viewInsets.bottom,
+                                bottom: MediaQuery.of(context).viewInsets.bottom,
                               ),
                               child: const _AddAdmissionEnquiryForm(),
                             );
@@ -443,7 +413,7 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
                       icon: const Icon(Icons.add),
                       label: const Text('Add New Enquiry'),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height * 0.02),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -459,6 +429,7 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildSmallSummaryCard(
     String title,
     String value,
@@ -493,6 +464,327 @@ class _AdmissionEnquiryTabState extends State<_AdmissionEnquiryTab> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// New widget for the Overview Tab
+class _OverviewTab extends StatefulWidget {
+  const _OverviewTab();
+
+  @override
+  State<_OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends State<_OverviewTab> {
+  final List<Map<String, dynamic>> _summaryData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Populate summary data for both admission enquiries and visitors
+    _summaryData.addAll([
+      // Admission Enquiry summaries
+      {
+        'title': 'Total Enquiries',
+        'icon': Icons.list_alt,
+        'color': Colors.blue,
+        'collection': 'admission_enquiries',
+        'field': 'total',
+      },
+      {
+        'title': 'New Enquiries',
+        'icon': Icons.fiber_new,
+        'color': Colors.orange,
+        'collection': 'admission_enquiries',
+        'field': 'new',
+      },
+      {'title': 'Enrolled', 'icon': Icons.school, 'color': Colors.green, 'collection': 'admission_enquiries', 'field': 'enrolled'},
+      {
+        'title': 'Contacted',
+        'icon': Icons.phone_in_talk,
+        'color': Colors.purple,
+        'collection': 'admission_enquiries',
+        'field': 'contacted',
+      },
+      // Visitor Book summaries
+      {
+        'title': 'Total Visitors',
+        'icon': Icons.groups_outlined,
+        'color': Colors.blue,
+        'collection': 'visitors',
+        'field': 'total',
+      },
+      {
+        'title': 'Currently In',
+        'icon': Icons.login_outlined,
+        'color': Colors.green,
+        'collection': 'visitors',
+        'field': 'checked_in',
+      },
+      {
+        'title': 'Checked Out',
+        'icon': Icons.logout_outlined,
+        'color': Colors.orange,
+        'collection': 'visitors',
+        'field': 'checked_out',
+      },
+      {
+        'title': 'Security Alerts',
+        'icon': Icons.security_outlined,
+        'color': Colors.red,
+        'collection': 'visitors',
+        'field': 'alerts',
+      },
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('admission_enquiries').snapshots(),
+          builder: (context, admissionSnapshot) {
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('visitors').snapshots(),
+              builder: (context, visitorSnapshot) {
+                if (admissionSnapshot.hasError || visitorSnapshot.hasError) {
+                  return const Center(child: Text('Something went wrong'));
+                }
+
+                if (admissionSnapshot.connectionState == ConnectionState.waiting ||
+                    visitorSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final admissionDocs = admissionSnapshot.data!.docs;
+                final visitorDocs = visitorSnapshot.data!.docs;
+
+                // Calculate summary data
+                final int totalEnquiries = admissionDocs.length;
+                final int newEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'New').length;
+                final int enrolledEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'Enrolled').length;
+                final int contactedEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'Contacted').length;
+
+                final int totalVisitors = visitorDocs.length;
+                final int currentlyIn = visitorDocs.where((d) => (d.data() as Map)['status'] == 'Checked In').length;
+                final int checkedOut = visitorDocs.where((d) => (d.data() as Map)['status'] == 'Checked Out').length;
+                const int securityAlerts = 0; // Placeholder
+
+                final values = [
+                  totalEnquiries, newEnquiries, enrolledEnquiries, contactedEnquiries,
+                  totalVisitors, currentlyIn, checkedOut, securityAlerts,
+                ];
+
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.04, // 4% of screen width
+                    vertical: MediaQuery.of(context).size.height * 0.02, // 2% of screen height
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Front Office Overview',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.03), // 3% of screen height
+                      // Summary Cards - Responsive Grid
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final screenWidth = constraints.maxWidth;
+                          int crossAxisCount;
+
+                          if (screenWidth >= 1200) {
+                            crossAxisCount = 8; // Large screens - many cards per row
+                          } else if (screenWidth >= 900) {
+                            crossAxisCount = 7; // Medium-large screens
+                          } else if (screenWidth >= 700) {
+                            crossAxisCount = 6; // Medium screens
+                          } else if (screenWidth >= 600) {
+                            crossAxisCount = 5; // Small tablets
+                          } else if (screenWidth >= 500) {
+                            crossAxisCount = 4; // Mobile phones - at least 4 per row
+                          } else {
+                            crossAxisCount = 4; // Very small screens - minimum 4 per row
+                          }
+
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              crossAxisSpacing: screenWidth * 0.02, // 2% of screen width
+                              mainAxisSpacing: screenWidth * 0.02, // 2% of screen width
+                              childAspectRatio: 0.7, // More compact cards
+                            ),
+                            itemCount: _summaryData.length,
+                            itemBuilder: (context, index) {
+                              final item = _summaryData[index];
+                              return _buildSmallSummaryCard(
+                                item['title'],
+                                values[index].toString(),
+                                item['icon'],
+                                item['color'],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.04), // 4% of screen height
+                      // Quick Actions
+                      Text(
+                        'Quick Actions',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.02), // 2% of screen height
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final screenWidth = constraints.maxWidth;
+                          if (screenWidth >= 600) {
+                            // Tablet and larger screens - horizontal layout
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: _buildQuickActionCard(
+                                    'New Enquiry',
+                                    Icons.person_add_alt_1_outlined,
+                                    Colors.blue,
+                                    () => DefaultTabController.of(context).animateTo(1),
+                                  ),
+                                ),
+                                SizedBox(width: screenWidth * 0.03), // 3% of screen width
+                                Expanded(
+                                  child: _buildQuickActionCard(
+                                    'Check In Visitor',
+                                    Icons.login_outlined,
+                                    Colors.green,
+                                    () => DefaultTabController.of(context).animateTo(2),
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            // Mobile screens - vertical layout
+                            return Column(
+                              children: [
+                                _buildQuickActionCard(
+                                  'New Enquiry',
+                                  Icons.person_add_alt_1_outlined,
+                                  Colors.blue,
+                                  () => DefaultTabController.of(context).animateTo(1),
+                                ),
+                                SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                                _buildQuickActionCard(
+                                  'Check In Visitor',
+                                  Icons.login_outlined,
+                                  Colors.green,
+                                  () => DefaultTabController.of(context).animateTo(2),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallSummaryCard(String title, String value, IconData icon, Color color) {
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
+    return SizedBox(
+      width: 50, // Smaller fixed width for more cards per row
+      height: 50, // Smaller fixed height for more cards per row
+      child: Card(
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)), // Even smaller border radius
+        child: Padding(
+          padding: const EdgeInsets.all(4), // Minimal padding
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: color), // Larger, more visible icon
+              const SizedBox(height: 1), // Minimal spacing
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    fontSize: 12, // Larger, more readable font
+                  ),
+                ),
+              ),
+              const SizedBox(height: 0.5), // Minimal spacing
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey.shade600,
+                    fontSize: 8, // Larger, more readable font
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: EdgeInsets.all(screenWidth * 0.04), // 4% of screen width
+          child: Column(
+            children: [
+              Icon(icon, size: isSmallScreen ? 28 : 32, color: color),
+              SizedBox(height: screenWidth * 0.02), // 2% of screen width
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                    fontSize: isSmallScreen ? 12 : 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -559,64 +851,21 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
 
             final docs = snapshot.data!.docs;
 
-            // Calculate summary data from the live snapshot
-            final int totalVisitors = docs.length;
-            final int currentlyIn = docs
-                .where((d) => (d.data() as Map)['status'] == 'Checked In')
-                .length;
-            final int checkedOut = docs
-                .where((d) => (d.data() as Map)['status'] == 'Checked Out')
-                .length;
-            const int securityAlerts = 0; // Placeholder for security alerts
-
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.04,
+                vertical: MediaQuery.of(context).size.height * 0.02,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Visitor Book Overview',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Summary Cards
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.9,
-                        ),
-                    itemCount: _summaryData.length,
-                    itemBuilder: (context, index) {
-                      final item = _summaryData[index];
-                      final values = [
-                        totalVisitors,
-                        currentlyIn,
-                        checkedOut,
-                        securityAlerts,
-                      ];
-                      return _buildSmallSummaryCard(
-                        item['title'],
-                        values[index].toString(),
-                        item['icon'],
-                        item['color'],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
                   Text(
                     'Visitor Records',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                   // Visitor List/Table
                   if (docs.isEmpty)
                     const Center(
@@ -634,70 +883,79 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
+                          columnSpacing: 12, // Reduced spacing
+                          horizontalMargin: 8, // Reduced margins
+                          dataRowMinHeight: 32, // Smaller row height
+                          dataRowMaxHeight: 40, // Smaller max height
+                          headingRowHeight: 36, // Smaller header height
                           columns: const [
-                            DataColumn(label: Text('Visitor ID')),
-                            DataColumn(label: Text('Name')),
-                            DataColumn(label: Text('Company')),
-                            DataColumn(label: Text('Purpose')),
-                            DataColumn(label: Text('Person to Meet')),
-                            DataColumn(label: Text('Transport')),
-                            DataColumn(label: Text('Vehicle No.')),
-                            DataColumn(label: Text('Check In')),
-                            DataColumn(label: Text('Check Out')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('Actions')),
+                            DataColumn(label: Text('Visitor ID', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Name', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Company', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Purpose', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Person to Meet', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Transport', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Vehicle No.', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Check In', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Check Out', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Status', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Actions', style: TextStyle(fontSize: 12))),
                           ],
                           rows: docs.map((doc) {
                             final visitor = doc.data() as Map<String, dynamic>;
                             return DataRow(
                               cells: [
-                                DataCell(Text(visitor['visitorId'] ?? '')),
-                                DataCell(Text(visitor['name'] ?? '')),
-                                DataCell(Text(visitor['company'] ?? '')),
-                                DataCell(Text(visitor['purpose'] ?? '')),
-                                DataCell(Text(visitor['personToMeet'] ?? '')),
+                                DataCell(Text(visitor['visitorId'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['name'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['company'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['purpose'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['personToMeet'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['transportMode'] ?? 'N/A', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['vehicleNumber'] ?? 'N/A', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['checkInTime'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(visitor['checkOutTime'] ?? '', style: const TextStyle(fontSize: 11))),
                                 DataCell(
-                                  Text(visitor['transportMode'] ?? 'N/A'),
-                                ),
-                                DataCell(
-                                  Text(visitor['vehicleNumber'] ?? 'N/A'),
-                                ),
-                                DataCell(Text(visitor['checkInTime'] ?? '')),
-                                DataCell(
-                                  Text(visitor['checkOutTime'] ?? ''),
-                                ), // Assuming this field might exist
-                                DataCell(
-                                  Chip(
-                                    label: Text(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(visitor['status'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
                                       visitor['status'] ?? 'N/A',
                                       style: const TextStyle(
                                         color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                    ),
-                                    backgroundColor: _getStatusColor(
-                                      visitor['status'] ?? '',
                                     ),
                                   ),
                                 ),
                                 DataCell(
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         icon: const Icon(
                                           Icons.edit,
-                                          size: 20,
+                                          size: 16,
                                           color: Colors.blue,
                                         ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                         onPressed: () {
                                           _editVisitor(doc);
                                         },
                                       ),
+                                      const SizedBox(width: 4),
                                       IconButton(
                                         icon: const Icon(
                                           Icons.delete,
-                                          size: 20,
+                                          size: 16,
                                           color: Colors.red,
                                         ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                         onPressed: () {
                                           _deleteVisitor(
                                             doc.id,
@@ -714,7 +972,7 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.03),
                   // Check In New Visitor Button - Moved here from FAB
                   SizedBox(
                     width: double.infinity,
@@ -726,9 +984,7 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
                           builder: (context) {
                             return Padding(
                               padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(
-                                  context,
-                                ).viewInsets.bottom,
+                                bottom: MediaQuery.of(context).viewInsets.bottom,
                               ),
                               child: const _AddVisitorForm(),
                             );
@@ -738,7 +994,7 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
                       icon: const Icon(Icons.person_add_alt_1_outlined),
                       label: const Text('Check In New Visitor'),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height * 0.02),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -754,6 +1010,7 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildSmallSummaryCard(
     String title,
     String value,
@@ -761,30 +1018,41 @@ class _VisitorBookTabState extends State<_VisitorBookTab> {
     Color color,
   ) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: EdgeInsets.all(screenWidth * 0.03), // 3% of screen width
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
+            Icon(icon, size: isSmallScreen ? 20 : 24, color: color),
+            SizedBox(height: screenWidth * 0.02), // 2% of screen width
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  fontSize: isSmallScreen ? 14 : 16,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
+            SizedBox(height: screenWidth * 0.01), // 1% of screen width
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                  fontSize: isSmallScreen ? 10 : 12,
+                ),
               ),
             ),
           ],
