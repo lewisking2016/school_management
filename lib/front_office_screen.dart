@@ -79,12 +79,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
           const _OverviewTab(), // New overview tab
           const _AdmissionEnquiryTab(), // Replaced with the new tab content
           const _VisitorBookTab(), // Replaced placeholder with the new tab content
-          _buildPlaceholderTab(
-            icon: Icons.phone_in_talk_outlined,
-            title: 'Phone Call Log',
-            description:
-                'Track and manage all incoming and outgoing phone calls.',
-          ),
+          const _PhoneCallLogTab(),
           _buildPlaceholderTab(
             icon: Icons.outbox_outlined,
             title: 'Postal Dispatch',
@@ -485,60 +480,89 @@ class _OverviewTabState extends State<_OverviewTab> {
   void initState() {
     super.initState();
     // Populate summary data for both admission enquiries and visitors
-    _summaryData.addAll([
-      // Admission Enquiry summaries
-      {
-        'title': 'Total Enquiries',
-        'icon': Icons.list_alt,
-        'color': Colors.blue,
-        'collection': 'admission_enquiries',
-        'field': 'total',
-      },
-      {
-        'title': 'New Enquiries',
-        'icon': Icons.fiber_new,
-        'color': Colors.orange,
-        'collection': 'admission_enquiries',
-        'field': 'new',
-      },
-      {'title': 'Enrolled', 'icon': Icons.school, 'color': Colors.green, 'collection': 'admission_enquiries', 'field': 'enrolled'},
-      {
-        'title': 'Contacted',
-        'icon': Icons.phone_in_talk,
-        'color': Colors.purple,
-        'collection': 'admission_enquiries',
-        'field': 'contacted',
-      },
-      // Visitor Book summaries
-      {
-        'title': 'Total Visitors',
-        'icon': Icons.groups_outlined,
-        'color': Colors.blue,
-        'collection': 'visitors',
-        'field': 'total',
-      },
-      {
-        'title': 'Currently In',
-        'icon': Icons.login_outlined,
-        'color': Colors.green,
-        'collection': 'visitors',
-        'field': 'checked_in',
-      },
-      {
-        'title': 'Checked Out',
-        'icon': Icons.logout_outlined,
-        'color': Colors.orange,
-        'collection': 'visitors',
-        'field': 'checked_out',
-      },
-      {
-        'title': 'Security Alerts',
-        'icon': Icons.security_outlined,
-        'color': Colors.red,
-        'collection': 'visitors',
-        'field': 'alerts',
-      },
-    ]);
+  _summaryData.addAll([
+    // Admission Enquiry summaries
+    {
+      'title': 'Total Enquiries',
+      'icon': Icons.list_alt,
+      'color': Colors.blue,
+      'collection': 'admission_enquiries',
+      'field': 'total',
+    },
+    {
+      'title': 'New Enquiries',
+      'icon': Icons.fiber_new,
+      'color': Colors.orange,
+      'collection': 'admission_enquiries',
+      'field': 'new',
+    },
+    {'title': 'Enrolled', 'icon': Icons.school, 'color': Colors.green, 'collection': 'admission_enquiries', 'field': 'enrolled'},
+    {
+      'title': 'Contacted',
+      'icon': Icons.phone_in_talk,
+      'color': Colors.purple,
+      'collection': 'admission_enquiries',
+      'field': 'contacted',
+    },
+    // Visitor Book summaries
+    {
+      'title': 'Total Visitors',
+      'icon': Icons.groups_outlined,
+      'color': Colors.blue,
+      'collection': 'visitors',
+      'field': 'total',
+    },
+    {
+      'title': 'Currently In',
+      'icon': Icons.login_outlined,
+      'color': Colors.green,
+      'collection': 'visitors',
+      'field': 'checked_in',
+    },
+    {
+      'title': 'Checked Out',
+      'icon': Icons.logout_outlined,
+      'color': Colors.orange,
+      'collection': 'visitors',
+      'field': 'checked_out',
+    },
+    {
+      'title': 'Security Alerts',
+      'icon': Icons.security_outlined,
+      'color': Colors.red,
+      'collection': 'visitors',
+      'field': 'alerts',
+    },
+    // Phone Call Log summaries
+    {
+      'title': 'Total Calls',
+      'icon': Icons.phone_outlined,
+      'color': Colors.teal,
+      'collection': 'phone_call_logs',
+      'field': 'total',
+    },
+    {
+      'title': 'Incoming Calls',
+      'icon': Icons.call_received,
+      'color': Colors.indigo,
+      'collection': 'phone_call_logs',
+      'field': 'incoming',
+    },
+    {
+      'title': 'Outgoing Calls',
+      'icon': Icons.call_made,
+      'color': Colors.cyan,
+      'collection': 'phone_call_logs',
+      'field': 'outgoing',
+    },
+    {
+      'title': 'Completed Calls',
+      'icon': Icons.check_circle_outline,
+      'color': Colors.green,
+      'collection': 'phone_call_logs',
+      'field': 'completed',
+    },
+  ]);
   }
 
   @override
@@ -553,17 +577,21 @@ class _OverviewTabState extends State<_OverviewTab> {
             return StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('visitors').snapshots(),
               builder: (context, visitorSnapshot) {
-                if (admissionSnapshot.hasError || visitorSnapshot.hasError) {
-                  return const Center(child: Text('Something went wrong'));
-                }
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('phone_call_logs').snapshots(),
+                  builder: (context, phoneCallSnapshot) {
+                    if (admissionSnapshot.hasError || visitorSnapshot.hasError || phoneCallSnapshot.hasError) {
+                      return const Center(child: Text('Something went wrong'));
+                    }
 
-                if (admissionSnapshot.connectionState == ConnectionState.waiting ||
-                    visitorSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                    if (admissionSnapshot.connectionState == ConnectionState.waiting ||
+                        visitorSnapshot.connectionState == ConnectionState.waiting ||
+                        phoneCallSnapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                final admissionDocs = admissionSnapshot.data!.docs;
-                final visitorDocs = visitorSnapshot.data!.docs;
+                    final admissionDocs = admissionSnapshot.data!.docs;
+                    final visitorDocs = visitorSnapshot.data!.docs;
 
                 // Calculate summary data
                 final int totalEnquiries = admissionDocs.length;
@@ -576,12 +604,29 @@ class _OverviewTabState extends State<_OverviewTab> {
                 final int checkedOut = visitorDocs.where((d) => (d.data() as Map)['status'] == 'Checked Out').length;
                 const int securityAlerts = 0; // Placeholder
 
+                // Phone Call Log calculations
+                final int totalCalls = phoneCallSnapshot.data?.docs.length ?? 0;
+                final int incomingCalls = phoneCallSnapshot.data?.docs
+                    .where((d) => (d.data() as Map)['callType'] == 'Incoming')
+                    .length ?? 0;
+                final int outgoingCalls = phoneCallSnapshot.data?.docs
+                    .where((d) => (d.data() as Map)['callType'] == 'Outgoing')
+                    .length ?? 0;
+                final int completedCalls = phoneCallSnapshot.data?.docs
+                    .where((d) => (d.data() as Map)['callStatus'] == 'Completed')
+                    .length ?? 0;
+
                 final values = [
                   totalEnquiries, newEnquiries, enrolledEnquiries, contactedEnquiries,
                   totalVisitors, currentlyIn, checkedOut, securityAlerts,
+                  totalCalls, incomingCalls, outgoingCalls, completedCalls,
                 ];
 
-                return SingleChildScrollView(
+                final admissionSummaryItems = _summaryData.where((item) => item['collection'] == 'admission_enquiries').toList();
+                final visitorSummaryItems = _summaryData.where((item) => item['collection'] == 'visitors').toList();
+                final phoneLogSummaryItems = _summaryData.where((item) => item['collection'] == 'phone_call_logs').toList();
+
+                                return SingleChildScrollView(
                   padding: EdgeInsets.symmetric(
                     horizontal: MediaQuery.of(context).size.width * 0.04, // 4% of screen width
                     vertical: MediaQuery.of(context).size.height * 0.02, // 2% of screen height
@@ -595,49 +640,31 @@ class _OverviewTabState extends State<_OverviewTab> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: MediaQuery.of(context).size.height * 0.03), // 3% of screen height
-                      // Summary Cards - Responsive Grid
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final screenWidth = constraints.maxWidth;
-                          int crossAxisCount;
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
-                          if (screenWidth >= 1200) {
-                            crossAxisCount = 8; // Large screens - many cards per row
-                          } else if (screenWidth >= 900) {
-                            crossAxisCount = 7; // Medium-large screens
-                          } else if (screenWidth >= 700) {
-                            crossAxisCount = 6; // Medium screens
-                          } else if (screenWidth >= 600) {
-                            crossAxisCount = 5; // Small tablets
-                          } else if (screenWidth >= 500) {
-                            crossAxisCount = 4; // Mobile phones - at least 4 per row
-                          } else {
-                            crossAxisCount = 4; // Very small screens - minimum 4 per row
-                          }
-
-                          return GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: crossAxisCount,
-                              crossAxisSpacing: screenWidth * 0.02, // 2% of screen width
-                              mainAxisSpacing: screenWidth * 0.02, // 2% of screen width
-                              childAspectRatio: 0.7, // More compact cards
-                            ),
-                            itemCount: _summaryData.length,
-                            itemBuilder: (context, index) {
-                              final item = _summaryData[index];
-                              return _buildSmallSummaryCard(
-                                item['title'],
-                                values[index].toString(),
-                                item['icon'],
-                                item['color'],
-                              );
-                            },
-                          );
-                        },
+                      // Admission Enquiry Overview
+                      _buildOverviewSection(
+                        title: 'Admission Enquiry Overview',
+                        items: admissionSummaryItems,
+                        values: values.sublist(0, 4),
                       ),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+
+                      // Visitor Book Overview
+                      _buildOverviewSection(
+                        title: 'Visitor Book Overview',
+                        items: visitorSummaryItems,
+                        values: values.sublist(4, 8),
+                      ),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+
+                      // Phone Call Log Overview
+                      _buildOverviewSection(
+                        title: 'Phone Call Log Overview',
+                        items: phoneLogSummaryItems,
+                        values: values.sublist(8, 12),
+                      ),
+
                       SizedBox(height: MediaQuery.of(context).size.height * 0.04), // 4% of screen height
                       // Quick Actions
                       Text(
@@ -698,19 +725,71 @@ class _OverviewTabState extends State<_OverviewTab> {
                     ],
                   ),
                 );
+                  }, 
+                ); 
+              }, 
+            );
+          }, 
+        ), 
+      ),
+    );
+  }
+
+  Widget _buildOverviewSection({
+    required String title,
+    required List<Map<String, dynamic>> items,
+    required List<int> values,
+  }) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            int crossAxisCount;
+
+            if (screenWidth >= 600) {
+              crossAxisCount = 4; // Tablets and larger screens
+            } else {
+              crossAxisCount = 2; // Mobile screens
+            }
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: screenWidth * 0.03,
+                mainAxisSpacing: screenWidth * 0.03,
+                childAspectRatio: 1, // Make cards square
+              ),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return _buildSmallSummaryCard(
+                  item['title'],
+                  values[index].toString(),
+                  item['icon'],
+                  item['color'],
+                );
               },
             );
           },
         ),
-      ),
+      ],
     );
   }
 
   Widget _buildSmallSummaryCard(String title, String value, IconData icon, Color color) {
     final theme = Theme.of(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    // ignore: unused_local_variable
-    final isSmallScreen = screenWidth < 600;
 
     return SizedBox(
       width: 50, // Smaller fixed width for more cards per row
@@ -783,6 +862,574 @@ class _OverviewTabState extends State<_OverviewTab> {
                   ),
                   textAlign: TextAlign.center,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// New widget for the Phone Call Log Tab
+class _PhoneCallLogTab extends StatefulWidget {
+  const _PhoneCallLogTab();
+
+  @override
+  State<_PhoneCallLogTab> createState() => _PhoneCallLogTabState();
+}
+
+class _PhoneCallLogTabState extends State<_PhoneCallLogTab> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('phone_call_logs')
+              .orderBy('callDateTime', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Something went wrong'));
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.04,
+                vertical: MediaQuery.of(context).size.height * 0.02,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Call Records',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  // Call Log List/Table
+                  if (docs.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48.0),
+                        child: Text('No call logs found.'),
+                      ),
+                    )
+                  else
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 12, // Reduced spacing
+                          horizontalMargin: 8, // Reduced margins
+                          dataRowMinHeight: 32, // Smaller row height
+                          dataRowMaxHeight: 40, // Smaller max height
+                          headingRowHeight: 36, // Smaller header height
+                          columns: const [
+                            DataColumn(label: Text('Caller Name', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Phone', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Type', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Duration', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Purpose', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Department', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Priority', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Status', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Date/Time', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Actions', style: TextStyle(fontSize: 12))),
+                          ],
+                          rows: docs.map((doc) {
+                            final callLog = doc.data() as Map<String, dynamic>;
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(callLog['callerName'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(callLog['phoneNumber'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: callLog['callType'] == 'Incoming' ? Colors.green : Colors.blue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      callLog['callType'] ?? 'N/A',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(Text(callLog['duration'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(callLog['purpose'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(callLog['department'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getPriorityColor(callLog['priority'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      callLog['priority'] ?? 'N/A',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(callLog['callStatus'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      callLog['callStatus'] ?? 'N/A',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(Text(callLog['callDateTime'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          size: 16,
+                                          color: Colors.blue,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () {
+                                          _editCallLog(doc);
+                                        },
+                                      ),
+                                      const SizedBox(width: 4),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          size: 16,
+                                          color: Colors.red,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () {
+                                          _deleteCallLog(
+                                            doc.id,
+                                            callLog['callerName'] ?? '',
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+                  // Log New Call Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) {
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: MediaQuery.of(context).viewInsets.bottom,
+                              ),
+                              child: const _AddPhoneCallLogForm(),
+                            );
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.add_ic_call),
+                      label: const Text('Log New Call'),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height * 0.02),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _editCallLog(DocumentSnapshot callLogDoc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: _AddPhoneCallLogForm(callLogDoc: callLogDoc),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteCallLog(String docId, String callerName) async {
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: Text(
+          'Are you sure you want to delete the call log for "$callerName"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('phone_call_logs')
+            .doc(docId)
+            .delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Call log deleted successfully.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting call log: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // ignore: unused_element
+  Widget _buildSmallSummaryCard(String title, String value, IconData icon, Color color) {
+    return SizedBox( // Removed screenWidth and isSmallScreen as they were unused in this specific method.
+      width: 50, // Smaller fixed width for more cards per row
+      height: 50, // Smaller fixed height for more cards per row
+      child: Card(
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)), // Even smaller border radius
+        child: Padding(
+          padding: const EdgeInsets.all(4), // Minimal padding
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: color), // Larger, more visible icon
+              const SizedBox(height: 1), // Minimal spacing
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    fontSize: 12, // Larger, more readable font
+                  ),
+                ),
+              ),
+              const SizedBox(height: 0.5), // Minimal spacing
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey.shade600,
+                    fontSize: 8, // Larger, more readable font
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Color _getPriorityColor(String priority) {
+  switch (priority.toLowerCase()) {
+    case 'high':
+      return Colors.red;
+    case 'medium':
+      return Colors.orange;
+    case 'low':
+      return Colors.green;
+    default:
+      return Colors.grey;
+  }
+}
+
+// New widget for the Add Phone Call Log Form
+class _AddPhoneCallLogForm extends StatefulWidget {
+  final DocumentSnapshot? callLogDoc;
+  const _AddPhoneCallLogForm({this.callLogDoc});
+
+  @override
+  State<_AddPhoneCallLogForm> createState() => _AddPhoneCallLogFormState();
+}
+
+class _AddPhoneCallLogFormState extends State<_AddPhoneCallLogForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _callerNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _durationController = TextEditingController();
+  final _purposeController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  String? _selectedCallType;
+  String? _selectedDepartment;
+  String? _selectedPriority;
+  String? _selectedCallStatus;
+
+  // Dummy data for dropdowns
+  final List<String> _callTypes = ['Incoming', 'Outgoing'];
+  final List<String> _departments = [
+    'Principal\'s Office',
+    'Accounts',
+    'Admissions',
+    'HR',
+    'IT',
+    'Academic',
+    'Administration',
+  ];
+  final List<String> _priorities = ['Low', 'Medium', 'High'];
+  final List<String> _callStatuses = ['Completed', 'Missed', 'Busy', 'No Answer'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.callLogDoc != null) {
+      final data = widget.callLogDoc!.data() as Map<String, dynamic>;
+      _callerNameController.text = data['callerName'] ?? '';
+      _phoneController.text = data['phoneNumber'] ?? '';
+      _durationController.text = data['duration'] ?? '';
+      _purposeController.text = data['purpose'] ?? '';
+      _notesController.text = data['notes'] ?? '';
+      _selectedCallType = data['callType'];
+      _selectedDepartment = data['department'];
+      _selectedPriority = data['priority'];
+      _selectedCallStatus = data['callStatus'];
+    } else {
+      // Set defaults for new call log
+      _selectedCallType = 'Incoming';
+      _selectedPriority = 'Medium';
+      _selectedCallStatus = 'Completed';
+    }
+  }
+
+  @override
+  void dispose() {
+    _callerNameController.dispose();
+    _phoneController.dispose();
+    _durationController.dispose();
+    _purposeController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveCallLog() async {
+    if (_formKey.currentState!.validate()) {
+      final callLogData = {
+        'callerName': _callerNameController.text,
+        'phoneNumber': _phoneController.text,
+        'callType': _selectedCallType,
+        'duration': _durationController.text,
+        'purpose': _purposeController.text,
+        'department': _selectedDepartment,
+        'priority': _selectedPriority,
+        'callStatus': _selectedCallStatus,
+        'notes': _notesController.text,
+      };
+
+      try {
+        final firestore = FirebaseFirestore.instance;
+        String successMessage;
+
+        if (widget.callLogDoc == null) {
+          // Creating a new call log
+          callLogData['callDateTime'] = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+          await firestore.collection('phone_call_logs').add(callLogData);
+          successMessage = 'Call log saved successfully!';
+        } else {
+          // Updating an existing call log
+          await firestore
+              .collection('phone_call_logs')
+              .doc(widget.callLogDoc!.id)
+              .update(callLogData);
+          successMessage = 'Call log updated successfully!';
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(successMessage),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop(true); // Pop and indicate success
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save call log: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.callLogDoc == null ? 'Log New Call' : 'Edit Call Log',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _callerNameController,
+                decoration: const InputDecoration(labelText: 'Caller Name*'),
+                validator: (value) => value!.isEmpty ? 'Caller name is required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(labelText: 'Phone Number*'),
+                keyboardType: TextInputType.phone,
+                validator: (value) => value!.isEmpty ? 'Phone number is required' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedCallType,
+                decoration: const InputDecoration(labelText: 'Call Type*'),
+                items: _callTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                onChanged: (value) => setState(() => _selectedCallType = value),
+                validator: (value) => value == null ? 'Please select call type' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _durationController,
+                decoration: const InputDecoration(labelText: 'Duration', hintText: 'e.g., 5 min'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _purposeController,
+                decoration: const InputDecoration(labelText: 'Purpose of Call*'),
+                validator: (value) => value!.isEmpty ? 'Purpose is required' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedDepartment,
+                decoration: const InputDecoration(labelText: 'Department'),
+                items: _departments.map((dept) => DropdownMenuItem(value: dept, child: Text(dept))).toList(),
+                onChanged: (value) => setState(() => _selectedDepartment = value),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedPriority,
+                decoration: const InputDecoration(labelText: 'Priority'),
+                items: _priorities.map((priority) => DropdownMenuItem(value: priority, child: Text(priority))).toList(),
+                onChanged: (value) => setState(() => _selectedPriority = value),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedCallStatus,
+                decoration: const InputDecoration(labelText: 'Call Status'),
+                items: _callStatuses.map((status) => DropdownMenuItem(value: status, child: Text(status))).toList(),
+                onChanged: (value) => setState(() => _selectedCallStatus = value),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Call Notes',
+                  hintText: 'Details of the call discussion...',
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _saveCallLog,
+                    child: Text(widget.callLogDoc == null ? 'Save Call Log' : 'Save Changes'),
+                  ),
+                ],
               ),
             ],
           ),
