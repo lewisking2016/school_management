@@ -80,11 +80,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
           const _AdmissionEnquiryTab(), // Replaced with the new tab content
           const _VisitorBookTab(), // Replaced placeholder with the new tab content
           const _PhoneCallLogTab(),
-          _buildPlaceholderTab(
-            icon: Icons.outbox_outlined,
-            title: 'Postal Dispatch',
-            description: 'Manage all outgoing mail and package dispatches.',
-          ),
+          const _PostalDispatchTab(), // Replaced placeholder with the new tab content
           _buildPlaceholderTab(
             icon: Icons.move_to_inbox_outlined,
             title: 'Postal Receive',
@@ -562,6 +558,33 @@ class _OverviewTabState extends State<_OverviewTab> {
       'collection': 'phone_call_logs',
       'field': 'completed',
     },
+    // Postal Dispatch summaries
+    {
+      'title': 'Today\'s Dispatches',
+      'icon': Icons.today_outlined,
+      'color': Colors.blue,
+      'collection': 'postal_dispatches',
+      'field': 'today',
+    },
+    {
+      'title': 'In Transit',
+      'icon': Icons.local_shipping_outlined,
+      'color': Colors.orange,
+      'collection': 'postal_dispatches',
+      'field': 'in_transit',
+    },
+    {
+      'title': 'Delivered',
+      'icon': Icons.check_circle_outline,
+      'color': Colors.green,
+      'collection': 'postal_dispatches',
+      'field': 'delivered',
+    },
+    {
+      'title': 'Total Value',
+      'icon': Icons.attach_money_outlined,
+      'color': Colors.purple,
+    },
   ]);
   }
 
@@ -578,53 +601,67 @@ class _OverviewTabState extends State<_OverviewTab> {
               stream: FirebaseFirestore.instance.collection('visitors').snapshots(),
               builder: (context, visitorSnapshot) {
                 return StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('phone_call_logs').snapshots(),
-                  builder: (context, phoneCallSnapshot) {
-                    if (admissionSnapshot.hasError || visitorSnapshot.hasError || phoneCallSnapshot.hasError) {
-                      return const Center(child: Text('Something went wrong'));
-                    }
+                  stream: FirebaseFirestore.instance.collection('phone_call_logs').snapshots(), builder: (context, phoneCallSnapshot) {
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance.collection('postal_dispatches').snapshots(),
+                      builder: (context, postalDispatchSnapshot) {
+                        if (admissionSnapshot.hasError || visitorSnapshot.hasError || phoneCallSnapshot.hasError || postalDispatchSnapshot.hasError) {
+                          return const Center(child: Text('Something went wrong'));
+                        }
 
-                    if (admissionSnapshot.connectionState == ConnectionState.waiting ||
-                        visitorSnapshot.connectionState == ConnectionState.waiting ||
-                        phoneCallSnapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+                        if (admissionSnapshot.connectionState == ConnectionState.waiting ||
+                            visitorSnapshot.connectionState == ConnectionState.waiting ||
+                            phoneCallSnapshot.connectionState == ConnectionState.waiting ||
+                            postalDispatchSnapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
 
-                    final admissionDocs = admissionSnapshot.data!.docs;
-                    final visitorDocs = visitorSnapshot.data!.docs;
+                        final admissionDocs = admissionSnapshot.data!.docs;
+                        final visitorDocs = visitorSnapshot.data!.docs;
+                        final phoneCallDocs = phoneCallSnapshot.data?.docs ?? [];
+                        final postalDispatchDocs = postalDispatchSnapshot.data?.docs ?? [];
 
-                // Calculate summary data
-                final int totalEnquiries = admissionDocs.length;
-                final int newEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'New').length;
-                final int enrolledEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'Enrolled').length;
-                final int contactedEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'Contacted').length;
+                        // Calculate summary data
+                        final int totalEnquiries = admissionDocs.length;
+                        final int newEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'New').length;
+                        final int enrolledEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'Enrolled').length;
+                        final int contactedEnquiries = admissionDocs.where((d) => (d.data() as Map)['status'] == 'Contacted').length;
 
-                final int totalVisitors = visitorDocs.length;
-                final int currentlyIn = visitorDocs.where((d) => (d.data() as Map)['status'] == 'Checked In').length;
-                final int checkedOut = visitorDocs.where((d) => (d.data() as Map)['status'] == 'Checked Out').length;
-                const int securityAlerts = 0; // Placeholder
+                        final int totalVisitors = visitorDocs.length;
+                        final int currentlyIn = visitorDocs.where((d) => (d.data() as Map)['status'] == 'Checked In').length;
+                        final int checkedOut = visitorDocs.where((d) => (d.data() as Map)['status'] == 'Checked Out').length;
+                        const int securityAlerts = 0; // Placeholder
 
-                // Phone Call Log calculations
-                final int totalCalls = phoneCallSnapshot.data?.docs.length ?? 0;
-                final int incomingCalls = phoneCallSnapshot.data?.docs
-                    .where((d) => (d.data() as Map)['callType'] == 'Incoming')
-                    .length ?? 0;
-                final int outgoingCalls = phoneCallSnapshot.data?.docs
-                    .where((d) => (d.data() as Map)['callType'] == 'Outgoing')
-                    .length ?? 0;
-                final int completedCalls = phoneCallSnapshot.data?.docs
-                    .where((d) => (d.data() as Map)['callStatus'] == 'Completed')
-                    .length ?? 0;
+                        // Phone Call Log calculations
+                        final int totalCalls = phoneCallDocs.length;
+                        final int incomingCalls = phoneCallDocs.where((d) => (d.data() as Map)['callType'] == 'Incoming').length;
+                        final int outgoingCalls = phoneCallDocs.where((d) => (d.data() as Map)['callType'] == 'Outgoing').length;
+                        final int completedCalls = phoneCallDocs.where((d) => (d.data() as Map)['callStatus'] == 'Completed').length;
 
-                final values = [
-                  totalEnquiries, newEnquiries, enrolledEnquiries, contactedEnquiries,
-                  totalVisitors, currentlyIn, checkedOut, securityAlerts,
-                  totalCalls, incomingCalls, outgoingCalls, completedCalls,
-                ];
+                        // Postal Dispatch calculations
+                        final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                        final int todaysDispatches = postalDispatchDocs.where((d) => (d.data() as Map)['dispatchDate'] == today).length;
+                        final int inTransit = postalDispatchDocs.where((d) => (d.data() as Map)['status'] == 'In Transit').length;
+                        final int delivered = postalDispatchDocs.where((d) => (d.data() as Map)['status'] == 'Delivered').length;
+                        // ignore: avoid_types_as_parameter_names
+                        final double totalValue = postalDispatchDocs.fold(0.0, (sum, doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final amount = data['postageAmount'] ?? 0.0;
+                          return sum + (amount is int ? amount.toDouble() : amount);
+                        });
 
-                final admissionSummaryItems = _summaryData.where((item) => item['collection'] == 'admission_enquiries').toList();
-                final visitorSummaryItems = _summaryData.where((item) => item['collection'] == 'visitors').toList();
-                final phoneLogSummaryItems = _summaryData.where((item) => item['collection'] == 'phone_call_logs').toList();
+                        final values = [
+                          totalEnquiries, newEnquiries, enrolledEnquiries, contactedEnquiries,
+                          totalVisitors, currentlyIn, checkedOut, securityAlerts,
+                          totalCalls, incomingCalls, outgoingCalls, completedCalls,
+                          todaysDispatches, inTransit, delivered, int.parse(totalValue.toStringAsFixed(0)),
+                        ];
+
+                        final admissionSummaryItems = _summaryData.where((item) => item['collection'] == 'admission_enquiries').toList();
+                        final visitorSummaryItems = _summaryData.where((item) => item['collection'] == 'visitors').toList();
+                        final phoneLogSummaryItems = _summaryData.where((item) => item['collection'] == 'phone_call_logs').toList();
+                        final postalDispatchSummaryItems = _summaryData.where((item) => item['collection'] == 'postal_dispatches').toList();
+                        final postalDispatchValueItem = _summaryData.firstWhere((item) => item['title'] == 'Total Value');
 
                                 return SingleChildScrollView(
                   padding: EdgeInsets.symmetric(
@@ -663,6 +700,15 @@ class _OverviewTabState extends State<_OverviewTab> {
                         title: 'Phone Call Log Overview',
                         items: phoneLogSummaryItems,
                         values: values.sublist(8, 12),
+                      ),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+
+                      // Postal Dispatch Overview
+                      _buildOverviewSection(
+                        title: 'Postal Dispatch Overview',
+                        items: postalDispatchSummaryItems + [postalDispatchValueItem],
+                        values: values.sublist(12, 16),
+                        valuePrefix: postalDispatchSummaryItems.length,
                       ),
 
                       SizedBox(height: MediaQuery.of(context).size.height * 0.04), // 4% of screen height
@@ -725,6 +771,7 @@ class _OverviewTabState extends State<_OverviewTab> {
                     ],
                   ),
                 );
+                      },);
                   }, 
                 ); 
               }, 
@@ -739,6 +786,7 @@ class _OverviewTabState extends State<_OverviewTab> {
     required String title,
     required List<Map<String, dynamic>> items,
     required List<int> values,
+    int? valuePrefix,
   }) {
     final theme = Theme.of(context);
     return Column(
@@ -774,9 +822,10 @@ class _OverviewTabState extends State<_OverviewTab> {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
+                final valueString = (valuePrefix != null && index == valuePrefix) ? '\$${values[index]}' : values[index].toString();
                 return _buildSmallSummaryCard(
                   item['title'],
-                  values[index].toString(),
+                  valueString,
                   item['icon'],
                   item['color'],
                 );
@@ -1439,6 +1488,386 @@ class _AddPhoneCallLogFormState extends State<_AddPhoneCallLogForm> {
   }
 }
 
+// New widget for the Postal Dispatch Tab
+class _PostalDispatchTab extends StatefulWidget {
+  const _PostalDispatchTab();
+
+  @override
+  State<_PostalDispatchTab> createState() => _PostalDispatchTabState();
+}
+
+class _PostalDispatchTabState extends State<_PostalDispatchTab> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('postal_dispatches')
+              .orderBy('dispatchDate', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Something went wrong: ${snapshot.error}'));
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.04,
+                vertical: MediaQuery.of(context).size.height * 0.02,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Postal Dispatch Records',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  if (docs.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48.0),
+                        child: Text('No postal dispatches found.'),
+                      ),
+                    )
+                  else
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 12,
+                          horizontalMargin: 8,
+                          dataRowMinHeight: 32,
+                          dataRowMaxHeight: 40,
+                          headingRowHeight: 36,
+                          columns: const [
+                            DataColumn(label: Text('Recipient', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Address', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Type', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Priority', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Courier', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Amount', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Status', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Actions', style: TextStyle(fontSize: 12))),
+                          ],
+                          rows: docs.map((doc) {
+                            final dispatch = doc.data() as Map<String, dynamic>;
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(dispatch['recipientName'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(dispatch['recipientAddress'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(dispatch['dispatchType'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getPriorityColor(dispatch['priority'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      dispatch['priority'] ?? 'N/A',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(Text(dispatch['courierService'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text('\$${(dispatch['postageAmount'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(dispatch['status'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      dispatch['status'] ?? 'N/A',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _editDispatch(doc),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _deleteDispatch(doc.id, dispatch['recipientName'] ?? ''),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) => Padding(
+                            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                            child: const _AddPostalDispatchForm(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create New Dispatch'),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height * 0.02),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _editDispatch(DocumentSnapshot dispatchDoc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _AddPostalDispatchForm(dispatchDoc: dispatchDoc),
+      ),
+    );
+  }
+
+  Future<void> _deleteDispatch(String docId, String recipientName) async {
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: Text('Are you sure you want to delete the dispatch for "$recipientName"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        await FirebaseFirestore.instance.collection('postal_dispatches').doc(docId).delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Dispatch record deleted successfully.'), backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting dispatch: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+}
+
+// New widget for the Add Postal Dispatch Form
+class _AddPostalDispatchForm extends StatefulWidget {
+  final DocumentSnapshot? dispatchDoc;
+  const _AddPostalDispatchForm({this.dispatchDoc});
+
+  @override
+  State<_AddPostalDispatchForm> createState() => _AddPostalDispatchFormState();
+}
+
+class _AddPostalDispatchFormState extends State<_AddPostalDispatchForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _recipientNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _recipientAddressController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _postageAmountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _remarksController = TextEditingController();
+  final _expectedDeliveryController = TextEditingController();
+
+  String? _selectedDispatchType;
+  String? _selectedPriority;
+  String? _selectedCourier;
+  String? _selectedDepartment;
+
+  final List<String> _dispatchTypes = ['Document', 'Parcel', 'Letter', 'Package'];
+  final List<String> _priorities = ['Normal', 'High', 'Urgent'];
+  final List<String> _courierServices = ['FedEx', 'UPS', 'DHL', 'Local Post'];
+  final List<String> _departments = ['Administration', 'Accounts', 'Admissions', 'HR', 'Principal\'s Office'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.dispatchDoc != null) {
+      final data = widget.dispatchDoc!.data() as Map<String, dynamic>;
+      _recipientNameController.text = data['recipientName'] ?? '';
+      _phoneController.text = data['phoneNumber'] ?? '';
+      _recipientAddressController.text = data['recipientAddress'] ?? '';
+      _emailController.text = data['email'] ?? '';
+      _postageAmountController.text = (data['postageAmount'] ?? 0.0).toString();
+      _descriptionController.text = data['description'] ?? '';
+      _remarksController.text = data['remarks'] ?? '';
+      _expectedDeliveryController.text = data['expectedDelivery'] ?? '';
+      _selectedDispatchType = data['dispatchType'];
+      _selectedPriority = data['priority'];
+      _selectedCourier = data['courierService'];
+      _selectedDepartment = data['senderDepartment'];
+    } else {
+      _selectedPriority = 'Normal';
+    }
+  }
+
+  @override
+  void dispose() {
+    _recipientNameController.dispose();
+    _phoneController.dispose();
+    _recipientAddressController.dispose();
+    _emailController.dispose();
+    _postageAmountController.dispose();
+    _descriptionController.dispose();
+    _remarksController.dispose();
+    _expectedDeliveryController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveDispatch() async {
+    if (_formKey.currentState!.validate()) {
+      final dispatchData = {
+        'recipientName': _recipientNameController.text,
+        'phoneNumber': _phoneController.text,
+        'recipientAddress': _recipientAddressController.text,
+        'email': _emailController.text,
+        'dispatchType': _selectedDispatchType,
+        'priority': _selectedPriority,
+        'expectedDelivery': _expectedDeliveryController.text,
+        'courierService': _selectedCourier,
+        'senderDepartment': _selectedDepartment,
+        'postageAmount': double.tryParse(_postageAmountController.text) ?? 0.0,
+        'description': _descriptionController.text,
+        'remarks': _remarksController.text,
+      };
+
+      try {
+        final firestore = FirebaseFirestore.instance;
+        String successMessage;
+
+        if (widget.dispatchDoc == null) {
+          dispatchData['dispatchDate'] = DateFormat('yyyy-MM-dd').format(DateTime.now());
+          dispatchData['status'] = 'In Transit';
+          await firestore.collection('postal_dispatches').add(dispatchData);
+          successMessage = 'Dispatch created successfully!';
+        } else {
+          await firestore.collection('postal_dispatches').doc(widget.dispatchDoc!.id).update(dispatchData);
+          successMessage = 'Dispatch updated successfully!';
+        }
+
+        if (mounted) {
+          Navigator.of(context).pop(true);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage), backgroundColor: Colors.green));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save dispatch: $e'), backgroundColor: Colors.red));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.dispatchDoc == null ? 'New Postal Dispatch' : 'Edit Postal Dispatch', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              TextFormField(controller: _recipientNameController, decoration: const InputDecoration(labelText: 'Recipient Name*'), validator: (v) => v!.isEmpty ? 'Recipient name is required' : null),
+              const SizedBox(height: 16),
+              TextFormField(controller: _phoneController, decoration: const InputDecoration(labelText: 'Phone Number'), keyboardType: TextInputType.phone),
+              const SizedBox(height: 16),
+              TextFormField(controller: _recipientAddressController, decoration: const InputDecoration(labelText: 'Recipient Address*'), validator: (v) => v!.isEmpty ? 'Recipient address is required' : null, maxLines: 2),
+              const SizedBox(height: 16),
+              TextFormField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email'), keyboardType: TextInputType.emailAddress),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: DropdownButtonFormField<String>(value: _selectedDispatchType, decoration: const InputDecoration(labelText: 'Dispatch Type*'), items: _dispatchTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) => setState(() => _selectedDispatchType = v), validator: (v) => v == null ? 'Required' : null)),
+                const SizedBox(width: 16),
+                Expanded(child: DropdownButtonFormField<String>(value: _selectedPriority, decoration: const InputDecoration(labelText: 'Priority'), items: _priorities.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(), onChanged: (v) => setState(() => _selectedPriority = v))),
+              ]),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: TextFormField(controller: _expectedDeliveryController, decoration: const InputDecoration(labelText: 'Expected Delivery', hintText: 'MM/DD/YYYY'), onTap: () async { FocusScope.of(context).requestFocus(FocusNode()); final date = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2030)); if (date != null) { _expectedDeliveryController.text = DateFormat('MM/dd/yyyy').format(date); } },)),
+                const SizedBox(width: 16),
+                Expanded(child: DropdownButtonFormField<String>(value: _selectedCourier, decoration: const InputDecoration(labelText: 'Courier Service'), items: _courierServices.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(), onChanged: (v) => setState(() => _selectedCourier = v))),
+              ]),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: DropdownButtonFormField<String>(value: _selectedDepartment, decoration: const InputDecoration(labelText: 'Sender Department'), items: _departments.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(), onChanged: (v) => setState(() => _selectedDepartment = v))),
+                const SizedBox(width: 16),
+                Expanded(child: TextFormField(controller: _postageAmountController, decoration: const InputDecoration(labelText: 'Postage Amount (\$)', prefixText: '\$'), keyboardType: const TextInputType.numberWithOptions(decimal: true))),
+              ]),
+              const SizedBox(height: 16),
+              TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Description*', hintText: 'Brief description of contents...'), validator: (v) => v!.isEmpty ? 'Description is required' : null, maxLines: 2),
+              const SizedBox(height: 16),
+              TextFormField(controller: _remarksController, decoration: const InputDecoration(labelText: 'Remarks', hintText: 'Additional notes...'), maxLines: 2),
+              const SizedBox(height: 32),
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                const SizedBox(width: 8),
+                ElevatedButton(onPressed: _saveDispatch, child: Text(widget.dispatchDoc == null ? 'Create Dispatch' : 'Save Changes')),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // New widget for the Visitor Book Tab
 class _VisitorBookTab extends StatefulWidget {
   const _VisitorBookTab();
@@ -1783,7 +2212,10 @@ Color _getStatusColor(String status) {
       return Colors.blue;
     case 'Enrolled':
     case 'Checked Out':
+    case 'In Transit':
       return Colors.orange;
+    case 'Delivered':
+      return Colors.green;
     default:
       return Colors.grey;
   }
