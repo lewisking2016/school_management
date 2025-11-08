@@ -81,11 +81,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
           const _VisitorBookTab(), // Replaced placeholder with the new tab content
           const _PhoneCallLogTab(),
           const _PostalDispatchTab(), // Replaced placeholder with the new tab content
-          _buildPlaceholderTab(
-            icon: Icons.move_to_inbox_outlined,
-            title: 'Postal Receive',
-            description: 'Manage all incoming mail and package receipts.',
-          ),
+          const _PostalReceiveTab(),
           _buildPlaceholderTab(
             icon: Icons.report_problem_outlined,
             title: 'Complain',
@@ -558,6 +554,36 @@ class _OverviewTabState extends State<_OverviewTab> {
       'collection': 'phone_call_logs',
       'field': 'completed',
     },
+    // Postal Receive summaries
+    {
+      'title': 'Today\'s Receipts',
+      'icon': Icons.today_outlined,
+      'color': Colors.blue,
+      'collection': 'postal_receives',
+      'field': 'today',
+    },
+    {
+      'title': 'Pending Collection',
+      'icon': Icons.hourglass_empty_outlined,
+      'color': Colors.orange,
+      'collection': 'postal_receives',
+      'field': 'pending',
+    },
+    {
+      'title': 'Delivered',
+      'icon': Icons.check_circle_outline,
+      'color': Colors.green,
+      'collection': 'postal_receives',
+      'field': 'delivered',
+    },
+    {
+      'title': 'Packages',
+      'icon': Icons.all_inbox_outlined,
+      'color': Colors.purple,
+      'collection': 'postal_receives',
+      'field': 'total_packages',
+      'isCount': true, // Custom field to indicate it's a count of packages
+    },
     // Postal Dispatch summaries
     {
       'title': 'Today\'s Dispatches',
@@ -601,18 +627,23 @@ class _OverviewTabState extends State<_OverviewTab> {
               stream: FirebaseFirestore.instance.collection('visitors').snapshots(),
               builder: (context, visitorSnapshot) {
                 return StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('phone_call_logs').snapshots(), builder: (context, phoneCallSnapshot) {
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance.collection('postal_dispatches').snapshots(),
+                  stream: FirebaseFirestore.instance.collection('phone_call_logs').snapshots(),
+                  builder: (context, phoneCallSnapshot) {
+                    // Add another StreamBuilder for postal_receives
+                    return StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('postal_dispatches').snapshots(), 
                       builder: (context, postalDispatchSnapshot) {
-                        if (admissionSnapshot.hasError || visitorSnapshot.hasError || phoneCallSnapshot.hasError || postalDispatchSnapshot.hasError) {
-                          return const Center(child: Text('Something went wrong'));
+                        return StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance.collection('postal_receives').snapshots(),
+                          builder: (context, postalReceiveSnapshot) {
+                        if (admissionSnapshot.hasError || visitorSnapshot.hasError || phoneCallSnapshot.hasError || postalDispatchSnapshot.hasError || postalReceiveSnapshot.hasError) {
+                          return const Center(child: Text('Something went wrong loading data.'));
                         }
 
                         if (admissionSnapshot.connectionState == ConnectionState.waiting ||
                             visitorSnapshot.connectionState == ConnectionState.waiting ||
                             phoneCallSnapshot.connectionState == ConnectionState.waiting ||
-                            postalDispatchSnapshot.connectionState == ConnectionState.waiting) {
+                            postalDispatchSnapshot.connectionState == ConnectionState.waiting ||
+                            postalReceiveSnapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator());
                         }
 
@@ -620,6 +651,7 @@ class _OverviewTabState extends State<_OverviewTab> {
                         final visitorDocs = visitorSnapshot.data!.docs;
                         final phoneCallDocs = phoneCallSnapshot.data?.docs ?? [];
                         final postalDispatchDocs = postalDispatchSnapshot.data?.docs ?? [];
+                        final postalReceiveDocs = postalReceiveSnapshot.data?.docs ?? [];
 
                         // Calculate summary data
                         final int totalEnquiries = admissionDocs.length;
@@ -643,18 +675,24 @@ class _OverviewTabState extends State<_OverviewTab> {
                         final int todaysDispatches = postalDispatchDocs.where((d) => (d.data() as Map)['dispatchDate'] == today).length;
                         final int inTransit = postalDispatchDocs.where((d) => (d.data() as Map)['status'] == 'In Transit').length;
                         final int delivered = postalDispatchDocs.where((d) => (d.data() as Map)['status'] == 'Delivered').length;
-                        // ignore: avoid_types_as_parameter_names
-                        final double totalValue = postalDispatchDocs.fold(0.0, (sum, doc) {
+                        final double totalValue = postalDispatchDocs.fold(0.0, (totalSum, doc) {
                           final data = doc.data() as Map<String, dynamic>;
                           final amount = data['postageAmount'] ?? 0.0;
-                          return sum + (amount is int ? amount.toDouble() : amount);
+                          return totalSum + (amount is int ? amount.toDouble() : amount);
                         });
+
+                        // Postal Receive calculations
+                        final int todaysReceipts = postalReceiveDocs.where((d) => (d.data() as Map)['receivedDate'] == today).length;
+                        final int pendingCollection = postalReceiveDocs.where((d) => (d.data() as Map)['status'] == 'Pending Collection').length;
+                        final int deliveredReceipts = postalReceiveDocs.where((d) => (d.data() as Map)['status'] == 'Delivered').length;
+                        final int totalPackages = postalReceiveDocs.length; // Assuming 'Packages' means total received items
 
                         final values = [
                           totalEnquiries, newEnquiries, enrolledEnquiries, contactedEnquiries,
                           totalVisitors, currentlyIn, checkedOut, securityAlerts,
-                          totalCalls, incomingCalls, outgoingCalls, completedCalls,
+                          totalCalls, incomingCalls, outgoingCalls, completedCalls, // Postal Dispatch calculations
                           todaysDispatches, inTransit, delivered, int.parse(totalValue.toStringAsFixed(0)),
+                          todaysReceipts, pendingCollection, deliveredReceipts, totalPackages,
                         ];
 
                         final admissionSummaryItems = _summaryData.where((item) => item['collection'] == 'admission_enquiries').toList();
@@ -662,6 +700,7 @@ class _OverviewTabState extends State<_OverviewTab> {
                         final phoneLogSummaryItems = _summaryData.where((item) => item['collection'] == 'phone_call_logs').toList();
                         final postalDispatchSummaryItems = _summaryData.where((item) => item['collection'] == 'postal_dispatches').toList();
                         final postalDispatchValueItem = _summaryData.firstWhere((item) => item['title'] == 'Total Value');
+                        final postalReceiveSummaryItems = _summaryData.where((item) => item['collection'] == 'postal_receives').toList();
 
                                 return SingleChildScrollView(
                   padding: EdgeInsets.symmetric(
@@ -703,10 +742,18 @@ class _OverviewTabState extends State<_OverviewTab> {
                       ),
                       SizedBox(height: MediaQuery.of(context).size.height * 0.03),
 
+                      // Postal Receive Overview
+                      _buildOverviewSection(
+                        title: 'Postal Receive Overview',
+                        items: postalReceiveSummaryItems,
+                        values: values.sublist(16, 20),
+                      ),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+
                       // Postal Dispatch Overview
                       _buildOverviewSection(
                         title: 'Postal Dispatch Overview',
-                        items: postalDispatchSummaryItems + [postalDispatchValueItem],
+                        items: postalDispatchSummaryItems + [postalDispatchValueItem], // Keep this as it is
                         values: values.sublist(12, 16),
                         valuePrefix: postalDispatchSummaryItems.length,
                       ),
@@ -771,13 +818,13 @@ class _OverviewTabState extends State<_OverviewTab> {
                     ],
                   ),
                 );
-                      },);
-                  }, 
-                ); 
-              }, 
+                      });
+                      },
+                    );
+                  });
+              },
             );
-          }, 
-        ), 
+        }),
       ),
     );
   }
@@ -1868,6 +1915,380 @@ class _AddPostalDispatchFormState extends State<_AddPostalDispatchForm> {
   }
 }
 
+// New widget for the Postal Receive Tab
+class _PostalReceiveTab extends StatefulWidget {
+  const _PostalReceiveTab();
+
+  @override
+  State<_PostalReceiveTab> createState() => _PostalReceiveTabState();
+}
+
+class _PostalReceiveTabState extends State<_PostalReceiveTab> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('postal_receives')
+              .orderBy('receivedDate', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Something went wrong: ${snapshot.error}'));
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.04,
+                vertical: MediaQuery.of(context).size.height * 0.02,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Postal Receive Records',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  if (docs.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48.0),
+                        child: Text('No postal receipts found.'),
+                      ),
+                    )
+                  else
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 12,
+                          horizontalMargin: 8,
+                          dataRowMinHeight: 32,
+                          dataRowMaxHeight: 40,
+                          headingRowHeight: 36,
+                          columns: const [
+                            DataColumn(label: Text('Sender', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Recipient', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Mail Type', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Priority', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Tracking No.', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Courier', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Received Date', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Status', style: TextStyle(fontSize: 12))),
+                            DataColumn(label: Text('Actions', style: TextStyle(fontSize: 12))),
+                          ],
+                          rows: docs.map((doc) {
+                            final receipt = doc.data() as Map<String, dynamic>;
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(receipt['senderName'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(receipt['recipientName'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(receipt['mailType'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getPriorityColor(receipt['priority'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      receipt['priority'] ?? 'N/A',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(Text(receipt['trackingNumber'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(receipt['courierService'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(Text(receipt['receivedDate'] ?? '', style: const TextStyle(fontSize: 11))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(receipt['status'] ?? ''),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      receipt['status'] ?? 'N/A',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _editReceipt(doc),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _deleteReceipt(doc.id, receipt['recipientName'] ?? ''),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) => Padding(
+                            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                            child: const _AddPostalReceiveForm(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Register New Receipt'),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height * 0.02),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _editReceipt(DocumentSnapshot receiptDoc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _AddPostalReceiveForm(receiptDoc: receiptDoc),
+      ),
+    );
+  }
+
+  Future<void> _deleteReceipt(String docId, String recipientName) async {
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: Text('Are you sure you want to delete the receipt for "$recipientName"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        await FirebaseFirestore.instance.collection('postal_receives').doc(docId).delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Receipt record deleted successfully.'), backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting receipt: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+}
+
+// New widget for the Add Postal Receive Form
+class _AddPostalReceiveForm extends StatefulWidget {
+  final DocumentSnapshot? receiptDoc;
+  const _AddPostalReceiveForm({this.receiptDoc});
+
+  @override
+  State<_AddPostalReceiveForm> createState() => _AddPostalReceiveFormState();
+}
+
+class _AddPostalReceiveFormState extends State<_AddPostalReceiveForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _senderNameController = TextEditingController();
+  final _senderPhoneController = TextEditingController();
+  final _senderAddressController = TextEditingController();
+  final _recipientNameController = TextEditingController();
+  final _trackingNumberController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _remarksController = TextEditingController();
+
+  String? _selectedMailType;
+  String? _selectedPriority;
+  String? _selectedRecipientDepartment;
+  String? _selectedCourierService;
+
+  final List<String> _mailTypes = ['Document', 'Package', 'Letter', 'Other'];
+  final List<String> _priorities = ['Normal', 'High', 'Urgent'];
+  final List<String> _departments = ['Administration', 'Accounts', 'Admissions', 'HR', 'Principal\'s Office'];
+  final List<String> _courierServices = ['FedEx', 'UPS', 'DHL', 'Local Post'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.receiptDoc != null) {
+      final data = widget.receiptDoc!.data() as Map<String, dynamic>;
+      _senderNameController.text = data['senderName'] ?? '';
+      _senderPhoneController.text = data['senderPhone'] ?? '';
+      _senderAddressController.text = data['senderAddress'] ?? '';
+      _recipientNameController.text = data['recipientName'] ?? '';
+      _trackingNumberController.text = data['trackingNumber'] ?? '';
+      _descriptionController.text = data['description'] ?? '';
+      _remarksController.text = data['remarks'] ?? '';
+      _selectedMailType = data['mailType'];
+      _selectedPriority = data['priority'];
+      _selectedRecipientDepartment = data['recipientDepartment'];
+      _selectedCourierService = data['courierService'];
+    } else {
+      _selectedPriority = 'Normal';
+    }
+  }
+
+  @override
+  void dispose() {
+    _senderNameController.dispose();
+    _senderPhoneController.dispose();
+    _senderAddressController.dispose();
+    _recipientNameController.dispose();
+    _trackingNumberController.dispose();
+    _descriptionController.dispose();
+    _remarksController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveReceipt() async {
+    if (_formKey.currentState!.validate()) {
+      final receiptData = {
+        'senderName': _senderNameController.text,
+        'senderPhone': _senderPhoneController.text,
+        'senderAddress': _senderAddressController.text,
+        'mailType': _selectedMailType,
+        'priority': _selectedPriority,
+        'recipientDepartment': _selectedRecipientDepartment,
+        'recipientName': _recipientNameController.text,
+        'trackingNumber': _trackingNumberController.text,
+        'courierService': _selectedCourierService,
+        'description': _descriptionController.text,
+        'remarks': _remarksController.text,
+      };
+
+      try {
+        final firestore = FirebaseFirestore.instance;
+        String successMessage;
+
+        if (widget.receiptDoc == null) {
+          receiptData['receivedDate'] = DateFormat('yyyy-MM-dd').format(DateTime.now());
+          receiptData['status'] = 'Pending Collection'; // Default status for new receipts
+          await firestore.collection('postal_receives').add(receiptData);
+          successMessage = 'Receipt registered successfully!';
+        } else {
+          await firestore.collection('postal_receives').doc(widget.receiptDoc!.id).update(receiptData);
+          successMessage = 'Receipt updated successfully!';
+        }
+
+        if (mounted) {
+          Navigator.of(context).pop(true);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage), backgroundColor: Colors.green));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save receipt: $e'), backgroundColor: Colors.red));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.receiptDoc == null ? 'Register New Receipt' : 'Edit Receipt', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              TextFormField(controller: _senderNameController, decoration: const InputDecoration(labelText: 'Sender Name*'), validator: (v) => v!.isEmpty ? 'Sender name is required' : null),
+              const SizedBox(height: 16),
+              TextFormField(controller: _senderPhoneController, decoration: const InputDecoration(labelText: 'Sender Phone'), keyboardType: TextInputType.phone),
+              const SizedBox(height: 16),
+              TextFormField(controller: _senderAddressController, decoration: const InputDecoration(labelText: 'Sender Address'), maxLines: 2),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: DropdownButtonFormField<String>(value: _selectedMailType, decoration: const InputDecoration(labelText: 'Mail Type*'), items: _mailTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) => setState(() => _selectedMailType = v), validator: (v) => v == null ? 'Required' : null)),
+                const SizedBox(width: 16),
+                Expanded(child: DropdownButtonFormField<String>(value: _selectedPriority, decoration: const InputDecoration(labelText: 'Priority'), items: _priorities.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(), onChanged: (v) => setState(() => _selectedPriority = v))),
+              ]),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(value: _selectedRecipientDepartment, decoration: const InputDecoration(labelText: 'Recipient Department*'), items: _departments.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(), onChanged: (v) => setState(() => _selectedRecipientDepartment = v), validator: (v) => v == null ? 'Required' : null),
+              const SizedBox(height: 16),
+              TextFormField(controller: _recipientNameController, decoration: const InputDecoration(labelText: 'Recipient Name*'), validator: (v) => v!.isEmpty ? 'Recipient name is required' : null),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: TextFormField(controller: _trackingNumberController, decoration: const InputDecoration(labelText: 'Tracking Number'))),
+                const SizedBox(width: 16),
+                Expanded(child: DropdownButtonFormField<String>(value: _selectedCourierService, decoration: const InputDecoration(labelText: 'Courier Service'), items: _courierServices.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(), onChanged: (v) => setState(() => _selectedCourierService = v))),
+              ]),
+              const SizedBox(height: 16),
+              TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Description*', hintText: 'Brief description of contents...'), validator: (v) => v!.isEmpty ? 'Description is required' : null, maxLines: 2),
+              const SizedBox(height: 16),
+              TextFormField(controller: _remarksController, decoration: const InputDecoration(labelText: 'Remarks', hintText: 'Additional notes...'), maxLines: 2),
+              const SizedBox(height: 32),
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                const SizedBox(width: 8),
+                ElevatedButton(onPressed: _saveReceipt, child: Text(widget.receiptDoc == null ? 'Register Receipt' : 'Save Changes')),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // New widget for the Visitor Book Tab
 class _VisitorBookTab extends StatefulWidget {
   const _VisitorBookTab();
@@ -2216,8 +2637,10 @@ Color _getStatusColor(String status) {
       return Colors.orange;
     case 'Delivered':
       return Colors.green;
-    default:
-      return Colors.grey;
+    case 'Pending Collection':
+      return Colors.orange; // Assuming pending collection is similar to in transit
+    default: // For 'Urgent' and other unhandled statuses
+      return Colors.grey.shade600;
   }
 }
 
