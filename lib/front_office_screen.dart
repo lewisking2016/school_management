@@ -82,12 +82,8 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
           const _PhoneCallLogTab(),
           const _PostalDispatchTab(), // Replaced placeholder with the new tab content
           const _PostalReceiveTab(), // Replaced placeholder
-          const _ComplainTab(), // New Complain Tab
-          _buildPlaceholderTab(
-            icon: Icons.settings_outlined,
-            title: 'Setup Front Office',
-            description: 'Configure all front office operations and settings.',
-          ),
+          const _ComplainTab(),
+          const _SetupFrontOfficeTab(), // New Setup Front Office Tab
         ],
       ),
       floatingActionButton: _buildFloatingActionButton(),
@@ -95,6 +91,7 @@ class _FrontOfficeScreenState extends State<FrontOfficeScreen>
   }
 
   /// A generic placeholder widget for a tab's content.
+  // ignore: unused_element
   Widget _buildPlaceholderTab({
     required IconData icon,
     required String title,
@@ -4008,6 +4005,138 @@ class _AddComplaintFormState extends State<_AddComplaintForm> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// New widget for the Setup Front Office Tab
+class _SetupFrontOfficeTab extends StatefulWidget {
+  const _SetupFrontOfficeTab();
+
+  @override
+  State<_SetupFrontOfficeTab> createState() => _SetupFrontOfficeTabState();
+}
+
+class _SetupFrontOfficeTabState extends State<_SetupFrontOfficeTab>
+    with SingleTickerProviderStateMixin {
+  late final TabController _setupTabController;
+
+  final List<Map<String, dynamic>> _setupTabs = [
+    {'icon': Icons.settings_applications_outlined, 'label': 'General'},
+    {'icon': Icons.hail_outlined, 'label': 'Visitors'},
+    {'icon': Icons.notifications_active_outlined, 'label': 'Notifications'},
+    {'icon': Icons.folder_copy_outlined, 'label': 'Documents'},
+    {'icon': Icons.people_alt_outlined, 'label': 'Staff'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _setupTabController = TabController(length: _setupTabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _setupTabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Setup Front Office'),
+        centerTitle: false,
+        automaticallyImplyLeading: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight / 2),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Configure front office operations and settings.',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: TabBarView(
+        controller: _setupTabController,
+        children: [
+          _buildSetupPlaceholder(
+            'General Settings',
+            'Manage general configurations for the front office module.',
+          ),
+          _buildSetupPlaceholder(
+            'Visitor Settings',
+            'Customize visitor pass templates, ID requirements, and check-in procedures.',
+          ),
+          _buildSetupPlaceholder(
+            'Notification Settings',
+            'Configure automated SMS or email alerts for visitor arrivals, package receipts, and more.',
+          ),
+          _buildSetupPlaceholder(
+            'Document Settings',
+            'Define categories and storage rules for uploaded documents.',
+          ),
+          _buildSetupPlaceholder(
+            'Staff Settings',
+            'Assign roles and permissions for front office staff members.',
+          ),
+        ],
+      ),
+      bottomNavigationBar: Material(
+        color: theme.scaffoldBackgroundColor,
+        elevation: 4,
+        child: TabBar(
+          controller: _setupTabController,
+          isScrollable: true,
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: Colors.grey.shade600,
+          indicatorColor: theme.colorScheme.primary,
+          tabs: _setupTabs.map((tab) {
+            return Tab(icon: Icon(tab['icon']), text: tab['label']);
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSetupPlaceholder(String title, String description) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.construction_outlined,
+              size: 60,
+              color: theme.colorScheme.secondary.withOpacity(0.7),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
