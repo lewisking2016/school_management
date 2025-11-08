@@ -4098,6 +4098,7 @@ class _SetupFrontOfficeTabState extends State<_SetupFrontOfficeTab>
         child: TabBar(
           controller: _setupTabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.center, // Center the tabs
           labelColor: theme.colorScheme.primary,
           unselectedLabelColor: Colors.grey.shade600,
           indicatorColor: theme.colorScheme.primary,
